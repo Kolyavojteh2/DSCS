@@ -1,0 +1,96 @@
+menu "Mesh Configuration"
+    config MESH_CHANNEL
+        int "channel"
+        range 0 14
+        default 0
+
+    config ROUTER_SSID
+        string "Router SSID"
+        default "206"
+
+    config ROUTER_PASSWORD
+        string "Router password"
+        default "206ROOM1"
+
+    choice
+        bool "Mesh AP Authentication Mode"
+        default WIFI_AUTH_WPA2_PSK
+        help
+            Authentication mode.
+
+        config WIFI_AUTH_OPEN
+            bool "WIFI_AUTH_OPEN"
+        config WIFI_AUTH_WPA_PSK
+            bool "WIFI_AUTH_WPA_PSK"
+        config WIFI_AUTH_WPA2_PSK
+            bool "WIFI_AUTH_WPA2_PSK"
+        config WIFI_AUTH_WPA_WPA2_PSK
+            bool "WIFI_AUTH_WPA_WPA2_PSK"
+    endchoice
+
+    config MESH_AP_AUTHMODE
+        int
+        default 0 if WIFI_AUTH_OPEN
+        default 2 if WIFI_AUTH_WPA_PSK
+        default 3 if WIFI_AUTH_WPA2_PSK
+        default 4 if WIFI_AUTH_WPA_WPA2_PSK
+        help
+            Mesh AP authentication mode.
+
+    config MESH_PASSWORD
+        string "Mesh password"
+        default "12345678"
+
+    config MESH_AP_CONNECTIONS
+        int "Mesh AP Connections"
+        range 1 10
+        default 3
+        help
+            The number of mesh stations allowed to connect in.
+
+    config MESH_NON_MESH_AP_CONNECTIONS
+        int "Mesh Non Mesh AP Connections"
+        range 0 9
+        default 0
+        help
+            The number of non-mesh stations allowed to connect in.
+
+    config MESH_MAX_CAPACITY
+        int "Mesh maximum capacity number"
+        range 0 1000
+        default 300
+
+    config MESH_MAX_LAYER
+        int "Mesh maximum network layer"
+        range 0 1000
+        default 7
+
+    config MESH_ELECTION_ROUNDS
+        int "Count of attempts to elect the root node"
+        default 10
+
+    config MESH_SELF_HEALING_ELECTIONS_ROUNDS
+        int "Max vote times in self-healing"
+        default 1000
+
+    config MESH_PARRENT_RECONNECTION_TRIES
+        int "Parent selection fail times, if the scan times reach this value"
+        default 60
+
+    config MESH_MAXIMUM_NUMBER_OF_BEACON_FRAMES_WITH_UPDATED_MESH_IE
+        int "Acceptable times of parent networking IE change before update its own networking IE"
+        default 3
+
+    config MESH_ROOT_HEALING_DELAY
+        int "Time in ms to healing the network"
+        default 6000
+
+    config MESH_ROOT_QUEUE_FOR_PACKETS_SIZE
+        int "Root queue for packets"
+        default 128
+
+    config MESH_CHILD_DISASSOCIATION_DELAY
+        int "Time in seconds"
+        default 10
+
+endmenu
