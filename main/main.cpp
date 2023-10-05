@@ -1,11 +1,12 @@
 #include <iostream>
 
-#include "FlashStorage/FlashStorage.h"
-#include "MeshNetworkModule/MeshNetworkModule.h"
-#include "WifiModule/WifiModule.h"
-#include "MeshDataExchangeModule/MeshDataExchangeModule.h"
+#include "FlashStorage.h"
+#include "MeshNetworkModule.h"
+#include "WifiModule.h"
+#include "MeshDataExchangeModule.h"
 
-#include "esp_netif.h"
+#include <esp_netif.h>
+// #include "ExchangeProtocol/ExchangeProtocol.h"
 
 // Отримання та відображення інформації про esp_netif_t
 void display_netif_info(esp_netif_t *netif)
@@ -44,6 +45,8 @@ extern "C" void app_main(void)
         display_netif_info(netif);
         netif = esp_netif_next(netif);
     }
+
+    // ExchangeProtocol_t proto(PacketType_t::Bootstrap);
 
     while (true)
     {

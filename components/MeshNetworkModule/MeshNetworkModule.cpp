@@ -1,5 +1,5 @@
 #include "MeshNetworkModule.h"
-#include "MeshDataExchangeModule/MeshDataExchangeModule.h"
+#include "MeshDataExchangeModule.h"
 
 const double MESH_ROOT_ELECTION_THRESHOLD = 0.9;
 static const uint8_t meshId[6] = {0x77, 0x77, 0x77, 0x77, 0x77, 0x77};
