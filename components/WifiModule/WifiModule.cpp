@@ -13,7 +13,12 @@
 #include <nvs_flash.h>
 #include <esp_log.h>
 
+#include <string.h>
+
 #include "WifiModule.h"
+
+uint8_t WifiModule::m_staMAC[6];
+uint8_t WifiModule::m_apMAC[6];
 
 WifiModule::WifiModule()
 {
@@ -78,6 +83,44 @@ void WifiModule::init()
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, ESP_EVENT_ANY_ID, &this->ip_event_handler, NULL));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));
     ESP_ERROR_CHECK(esp_wifi_start());
+
+    // Update STA MAC
+    esp_netif = esp_netif_next(NULL);
+    netif_count = esp_netif_get_nr_of_ifs();
+    for (size_t i = 0; i < netif_count; ++i)
+    {
+        const char *ifkey = esp_netif_get_ifkey(esp_netif);
+        if (strcmp(ifkey, "WIFI_STA_DEF") == 0)
+        {
+            uint8_t mac[6];
+            esp_netif_get_mac(esp_netif, mac);
+            setStaMAC(mac);
+
+            break;
+        }
+
+        esp_netif = esp_netif_next(esp_netif);
+    }
+}
+
+void WifiModule::setStaMAC(const uint8_t *mac)
+{
+    memcpy(m_staMAC, mac, 6);
+}
+
+void WifiModule::setApMAC(const uint8_t *mac)
+{
+    memcpy(m_apMAC, mac, 6);
+}
+
+uint8_t *WifiModule::getStaMAC(void)
+{
+    return m_staMAC;
+}
+
+uint8_t *WifiModule::getApMAC(void)
+{
+    return m_apMAC;
 }
 
 void WifiModule::on_event_STA_got_IP(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)

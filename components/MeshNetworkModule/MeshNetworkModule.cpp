@@ -1,5 +1,8 @@
 #include "MeshNetworkModule.h"
 #include "MeshDataExchangeModule.h"
+#include "WifiModule.h"
+
+#include <esp_netif.h>
 
 const double MESH_ROOT_ELECTION_THRESHOLD = 0.9;
 static const uint8_t meshId[6] = {0x77, 0x77, 0x77, 0x77, 0x77, 0x77};
@@ -33,6 +36,24 @@ void MeshNetworkModule::init()
 
     // Mesh start
     ESP_ERROR_CHECK(esp_mesh_start());
+
+    // Update AP MAC
+    esp_netif_t *esp_netif = esp_netif_next(NULL);
+    size_t netif_count = esp_netif_get_nr_of_ifs();
+    for (size_t i = 0; i < netif_count; ++i)
+    {
+        const char *ifkey = esp_netif_get_ifkey(esp_netif);
+        if (strcmp(ifkey, "WIFI_AP_DEF") == 0)
+        {
+            uint8_t mac[6];
+            esp_netif_get_mac(esp_netif, mac);
+            WifiModule::setApMAC(mac);
+
+            break;
+        }
+
+        esp_netif = esp_netif_next(esp_netif);
+    }
 }
 
 void MeshNetworkModule::initBaseConfiguration(const uint8_t *mesh_id)
