@@ -8,6 +8,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 
+#include "PacketHandleMechanism.h"
+
 struct MeshExchangePacket_t
 {
     std::vector<uint8_t> data;
@@ -31,6 +33,10 @@ public:
     // Receive control
     void startReceiving(void);
     void stopReceiving(void);
+
+    static PacketHandleMechanism m_mechanismToExternalIP;
+    static PacketHandleMechanism m_mechanismFromExternalIP;
+    static PacketHandleMechanism m_mechanismToNode;
 
 private:
     static constexpr const char *moduleTag = "MDEM";

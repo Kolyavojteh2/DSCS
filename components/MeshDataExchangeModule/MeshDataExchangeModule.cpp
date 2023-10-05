@@ -5,6 +5,10 @@
 
 #define MAC_ADDRESS_LENGTH (6)
 
+PacketHandleMechanism MeshDataExchangeModule::m_mechanismFromExternalIP;
+PacketHandleMechanism MeshDataExchangeModule::m_mechanismToExternalIP;
+PacketHandleMechanism MeshDataExchangeModule::m_mechanismToNode;
+
 MeshDataExchangeModule &MeshDataExchangeModule::getInstance()
 {
     static MeshDataExchangeModule instance;
@@ -213,21 +217,21 @@ void MeshDataExchangeModule::receiveTask(void * /*unused*/)
         {
             ESP_LOGI(moduleTag, "Destination: toDS");
             // from node to external IP
-            // TODO: add mechanism for handling packets from a node to an external IP
+            m_mechanismToExternalIP.run(dataDes);
         }
 
         if (recvFlag & MESH_DATA_FROMDS || recvOpt.type == MESH_OPT_RECV_DS_ADDR)
         {
             ESP_LOGI(moduleTag, "Destination: fromDS");
             // from external IP
-            // TODO: add mechanism for handling packets from an external IP
+            m_mechanismFromExternalIP.run(dataDes);
         }
 
         if (recvFlag & MESH_DATA_P2P)
         {
             ESP_LOGI(moduleTag, "Destination: P2P");
             // from node
-            // TODO: add mechanism for handling packets from a node
+            m_mechanismToNode.run(dataDes);
         }
     }
 }

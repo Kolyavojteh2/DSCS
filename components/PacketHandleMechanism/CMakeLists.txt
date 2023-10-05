@@ -1,14 +1,10 @@
 idf_component_register(
     SRCS
-    "MeshDataExchangeModule.cpp"
+    "PacketHandleMechanism.cpp"
 
     INCLUDE_DIRS
     "."
 
-    REQUIRES
-    "PacketHandleMechanism"
-
     PRIV_REQUIRES
-    "freertos"
     "esp_wifi"
 )
