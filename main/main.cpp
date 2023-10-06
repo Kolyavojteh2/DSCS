@@ -33,11 +33,20 @@ void display_netif_info(esp_netif_t *netif)
 extern "C" void app_main(void)
 {
     FlashStorage flash;
-    WifiModule wifi;
+    WifiModule &wifi = WifiModule::getInstance();
     MeshNetworkModule meshNetwork;
     MeshDataExchangeModule::getInstance();
 
     vTaskDelay(pdMS_TO_TICKS(10000));
+
+    uint8_t *mac = nullptr;
+    mac = wifi.getStaMAC();
+    printf("STA MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+
+    mac = wifi.getApMAC();
+    printf("AP MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 
     esp_netif_t *netif = esp_netif_next(NULL);
     while (netif)

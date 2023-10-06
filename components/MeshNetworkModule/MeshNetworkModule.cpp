@@ -47,7 +47,7 @@ void MeshNetworkModule::init()
         {
             uint8_t mac[6];
             esp_netif_get_mac(esp_netif, mac);
-            WifiModule::setApMAC(mac);
+            WifiModule::getInstance().setApMAC(mac);
 
             break;
         }

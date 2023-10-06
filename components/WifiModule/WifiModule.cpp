@@ -17,8 +17,12 @@
 
 #include "WifiModule.h"
 
-uint8_t WifiModule::m_staMAC[6];
-uint8_t WifiModule::m_apMAC[6];
+WifiModule &WifiModule::getInstance()
+{
+    static WifiModule instance;
+
+    return instance;
+}
 
 WifiModule::WifiModule()
 {
