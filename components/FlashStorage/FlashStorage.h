@@ -4,9 +4,13 @@
 class FlashStorage
 {
 public:
-    FlashStorage();
+    static FlashStorage &getInstance(void);
 
 private:
+    FlashStorage();
+    FlashStorage(const FlashStorage &) = delete;
+    FlashStorage &operator=(const FlashStorage &) = delete;
+
     void init();
 };
 

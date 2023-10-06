@@ -32,7 +32,7 @@ void display_netif_info(esp_netif_t *netif)
 
 extern "C" void app_main(void)
 {
-    FlashStorage flash;
+    FlashStorage &flash = FlashStorage::getInstance();
     WifiModule &wifi = WifiModule::getInstance();
     MeshNetworkModule &meshNetwork = MeshNetworkModule::getInstance();
     MeshDataExchangeModule::getInstance();

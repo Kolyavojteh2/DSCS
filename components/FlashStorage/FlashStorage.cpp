@@ -3,6 +3,13 @@
 #include <nvs_flash.h>
 #include <esp_system.h>
 
+FlashStorage &FlashStorage::getInstance()
+{
+    static FlashStorage instance;
+
+    return instance;
+}
+
 FlashStorage::FlashStorage()
 {
     init();
