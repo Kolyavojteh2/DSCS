@@ -1,0 +1,3 @@
+[submodule "components/DSS_Protocol"]
+	path = components/DSS_Protocol
+	url = git@github.com:Kolyavojteh2/DSS_Protocol.git
