@@ -217,21 +217,21 @@ void MeshDataExchangeModule::receiveTask(void * /*unused*/)
         {
             ESP_LOGI(moduleTag, "Destination: toDS");
             // from node to external IP
-            m_mechanismToExternalIP.run(dataDes);
+            m_mechanismToExternalIP.run(source, dataDes);
         }
 
         if (recvFlag & MESH_DATA_FROMDS || recvOpt.type == MESH_OPT_RECV_DS_ADDR)
         {
             ESP_LOGI(moduleTag, "Destination: fromDS");
             // from external IP
-            m_mechanismFromExternalIP.run(dataDes);
+            m_mechanismFromExternalIP.run(source, dataDes);
         }
 
         if (recvFlag & MESH_DATA_P2P)
         {
             ESP_LOGI(moduleTag, "Destination: P2P");
             // from node
-            m_mechanismToNode.run(dataDes);
+            m_mechanismToNode.run(source, dataDes);
         }
     }
 }
