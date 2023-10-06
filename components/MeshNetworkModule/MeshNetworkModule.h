@@ -14,10 +14,14 @@
 class MeshNetworkModule
 {
 public:
-    MeshNetworkModule();
+    static MeshNetworkModule &getInstance(void);
 
 private:
     static constexpr const char *moduleTag = "mesh";
+
+    MeshNetworkModule();
+    MeshNetworkModule(const MeshNetworkModule &) = delete;
+    MeshNetworkModule &operator=(const MeshNetworkModule &) = delete;
 
     void init();
     void initBaseConfiguration(const uint8_t *mesh_id);

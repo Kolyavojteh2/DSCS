@@ -7,6 +7,13 @@
 const double MESH_ROOT_ELECTION_THRESHOLD = 0.9;
 static const uint8_t meshId[6] = {0x77, 0x77, 0x77, 0x77, 0x77, 0x77};
 
+MeshNetworkModule &MeshNetworkModule::getInstance()
+{
+    static MeshNetworkModule instance;
+
+    return instance;
+}
+
 MeshNetworkModule::MeshNetworkModule()
 {
     init();

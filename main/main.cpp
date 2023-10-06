@@ -34,7 +34,7 @@ extern "C" void app_main(void)
 {
     FlashStorage flash;
     WifiModule &wifi = WifiModule::getInstance();
-    MeshNetworkModule meshNetwork;
+    MeshNetworkModule &meshNetwork = MeshNetworkModule::getInstance();
     MeshDataExchangeModule::getInstance();
 
     vTaskDelay(pdMS_TO_TICKS(10000));
