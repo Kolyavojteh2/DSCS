@@ -4,6 +4,7 @@
 #include "MeshNetworkModule.h"
 #include "WifiModule.h"
 #include "MeshDataExchangeModule.h"
+#include "DistributedSensorSystemClient.h"
 
 #include <esp_netif.h>
 // #include "ExchangeProtocol/ExchangeProtocol.h"
@@ -36,6 +37,7 @@ extern "C" void app_main(void)
     WifiModule &wifi = WifiModule::getInstance();
     MeshNetworkModule &meshNetwork = MeshNetworkModule::getInstance();
     MeshDataExchangeModule::getInstance();
+    DistributedSensorSystemClient::getInstance();
 
     vTaskDelay(pdMS_TO_TICKS(10000));
 
