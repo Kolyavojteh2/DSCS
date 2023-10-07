@@ -1,5 +1,5 @@
 #include "DistributedSensorSystemClient.h"
-#include "ExchangeProtocolHandler.h"
+#include "DSSProtocolHandler.h"
 #include "MeshDataExchangeModule.h"
 
 DistributedSensorSystemClient &DistributedSensorSystemClient::getInstance()
@@ -16,5 +16,8 @@ DistributedSensorSystemClient::DistributedSensorSystemClient()
 
 void DistributedSensorSystemClient::initHandlers()
 {
-    MeshDataExchangeModule::m_mechanismFromExternalIP.addHandler("aliveNodeRequest", ExchangeProtocolHandler::aliveNodeRequestHandler);
+    // MeshDataExchangeModule::m_mechanismFromExternalIP.addHandler("aliveNodeRequest", DSSProtocolHandler::aliveNodeRequestHandler);
+
+    MeshDataExchangeModule::m_mechanismPacketHandlers.addHandler("bootstrapInRoot", DSSProtocolHandler::bootstrapRootHandler);
+    MeshDataExchangeModule::m_mechanismPacketHandlers.addHandler("aliveNodeRequest", DSSProtocolHandler::aliveNodeRequestHandler);
 }

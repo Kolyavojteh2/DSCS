@@ -1,16 +1,17 @@
 idf_component_register(
     SRCS
     "DistributedSensorSystemClient.cpp"
-    "ExchangeProtocolHandler.cpp"
+    "DSSProtocolHandler.cpp"
 
     INCLUDE_DIRS
     "."
 
     REQUIRES
     "PacketHandleMechanism"
-    "ExchangeProtocol"
+    "DSS_Protocol"
     "MeshDataExchangeModule"
     "WifiModule"
+    "MeshNetworkModule"
 
     PRIV_REQUIRES
     "esp_wifi"
