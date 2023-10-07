@@ -7,6 +7,9 @@ idf_component_register(
 
     REQUIRES
     "PacketHandleMechanism"
+    "DSS_Protocol"
+    "WifiModule"
+    "MeshNetworkModule"
 
     PRIV_REQUIRES
     "freertos"

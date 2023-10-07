@@ -29,17 +29,16 @@ int PacketHandleMechanism::removeHandler(const std::string &name)
     return 0;
 }
 
-void PacketHandleMechanism::run(const mesh_addr_t &source, const mesh_data_t &data)
+void PacketHandleMechanism::run(const std::vector<uint8_t> &bin)
 {
     m_stopRunning = false;
-    std::vector<uint8_t> bin(data.data, data.data + data.size);
 
     for (auto &handler : m_handlers)
     {
         if (m_stopRunning)
             break;
 
-        handler.second(source, bin);
+        handler.second(bin);
     }
 }
 

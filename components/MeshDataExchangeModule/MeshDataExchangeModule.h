@@ -10,11 +10,14 @@
 
 #include "PacketHandleMechanism.h"
 
-struct MeshExchangePacket_t
+#include "DSS_Protocol.h"
+
+enum MeshPacketFlag_t
 {
-    std::vector<uint8_t> data;
-    bool nonBlock = false;
-    bool nonCritical = false;
+    ToRoot = 0,
+    ToNode = MESH_DATA_P2P,
+    ToIP = MESH_DATA_TODS,
+    FromIP = MESH_DATA_P2P | MESH_DATA_FROMDS,
 };
 
 class MeshDataExchangeModule
@@ -23,12 +26,11 @@ public:
     // Singleton
     static MeshDataExchangeModule &getInstance();
 
-    // Send functions
-    static esp_err_t sendToRoot(const MeshExchangePacket_t &packet);
-    // TODO: look at the dest, it can be a const mesh_addr_t dest& and with source the same
-    static esp_err_t sendToNode(const mesh_addr_t *const dest, const MeshExchangePacket_t &packet);
-    static esp_err_t sendToNodeFromIP(const mesh_addr_t *const dest, const mesh_addr_t *const source, const MeshExchangePacket_t &packet);
-    static esp_err_t sendToIP(const mesh_addr_t *const dest, const MeshExchangePacket_t &packet);
+    // Send Functions
+    static esp_err_t sendToRoot(const std::vector<uint8_t> &bin);
+    static esp_err_t sendToNode(const std::vector<uint8_t> &bin);
+    static esp_err_t sendToIP(const std::vector<uint8_t> &bin);
+    static esp_err_t sendFromIP(const std::vector<uint8_t> &bin);
 
     // Receive control
     void startReceiving(void);
@@ -38,6 +40,8 @@ public:
     static PacketHandleMechanism m_mechanismFromExternalIP;
     static PacketHandleMechanism m_mechanismToNode;
 
+    static PacketHandleMechanism m_mechanismPacketHandlers;
+
 private:
     static constexpr const char *moduleTag = "MDEM";
 
@@ -45,12 +49,31 @@ private:
     MeshDataExchangeModule(const MeshDataExchangeModule &) = delete;
     MeshDataExchangeModule &operator=(const MeshDataExchangeModule &) = delete;
 
+    static esp_err_t sendToIPAsNode(const std::vector<uint8_t> &bin);
+    static esp_err_t sendToIPAsRoot(const std::vector<uint8_t> &bin);
+
     static bool checkData(const std::vector<uint8_t> &data);
-    static void prepareSendPacket(mesh_data_t &sendPacket, const MeshExchangePacket_t &exchangePacket);
-    static void prepareSendFlag(int &flag, const MeshExchangePacket_t &exchangePacket);
+
+    static void prepareSendPacket(mesh_data_t &sendPacket, const std::vector<uint8_t> &bin);
 
     // Receive task
-    static void receiveTask(void *);
+    static void receiveMeshTask(void *);
+    static void receiveIPTask(void *);
+
+    static void analyzeAndProcessData(const std::vector<uint8_t> bin, const int flag);
+
+    static void handleReceivedData(const std::vector<uint8_t> bin, const int flag);
+    static void retransmitReceivedData(const std::vector<uint8_t> bin, const int flag);
+
+    static bool isNeedToHandle(const DSS_Protocol_t &header, const int flag);
+    static bool isNeedToRetransmit(const DSS_Protocol_t &header, const int flag);
+
+    static bool isToExternalIP(const int flag);
+    static bool isFromNodeToNode(const int flag);
+    static bool isFromExternalIPToNode(const int flag);
+
+    static bool isDestinationCurrentDevice(const DSS_Protocol_t &header);
+    static bool isBroadcast(const DSS_Protocol_t &header);
 
     // Receive control
     bool m_receivingState = false;

@@ -1,8 +1,17 @@
 #include "MeshNetworkModule.h"
 #include "MeshDataExchangeModule.h"
 #include "WifiModule.h"
+#include "DSSProtocolHandler.h"
 
 #include <esp_netif.h>
+
+#include "lwip/err.h"
+#include "lwip/sys.h"
+#include "lwip/netdb.h"
+
+#ifndef MAC_ADDRESS_LENGTH
+#define MAC_ADDRESS_LENGTH (6)
+#endif // MAC_ADDRESS_LENGTH
 
 const double MESH_ROOT_ELECTION_THRESHOLD = 0.9;
 static const uint8_t meshId[6] = {0x77, 0x77, 0x77, 0x77, 0x77, 0x77};
@@ -213,36 +222,6 @@ void MeshNetworkModule::onMeshEventParentNotFound(void *arg, esp_event_base_t ev
 void MeshNetworkModule::onMeshEventParentConnected(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     mesh_event_connected_t *connected = (mesh_event_connected_t *)event_data;
-
-    // TODO: check if unnecessary
-    // mesh_addr_t id = { 0, };
-
-    // TODO: remove or change it
-    // xEventGroupSetBits(mesh_event_group, MESH_PARENT);
-    // memcpy(mesh_state.parent_addr, connected->connected.bssid, 6);
-    // mesh_state.layer = connected->self_layer;
-
-    // TODO: remove or change it
-    // define the mesh type
-    // if (mesh_state.layer == MESH_ROOT_LAYER)
-    //     mesh_state.type = MESH_ROOT;
-    // else if (mesh_state.type == CONFIG_MESH_MAX_LAYER)
-    //     mesh_state.type = MESH_LEAF;
-    // else
-    //     mesh_state.type = MESH_NODE;
-
-    // TODO: change it
-    // start dhcp client if it is root
-    // if (mesh_state.type == MESH_ROOT)
-    // {
-    //    esp_netif_dhcpc_stop(wifi_netif_sta);
-    //    esp_netif_dhcpc_start(wifi_netif_sta);
-    // }
-
-    // TODO: check if unnecessary
-    // esp_mesh_get_id(&id);
-    // mesh_layer = connected->self_layer;
-    // memcpy(&(mesh_get_parrent_addr()->addr), connected->connected.bssid, 6);
     mesh_addr_t parrentMAC;
     esp_mesh_get_parent_bssid(&parrentMAC);
 
@@ -264,19 +243,11 @@ void MeshNetworkModule::onMeshEventParentConnected(void *arg, esp_event_base_t e
         }
         if (status != ESP_NETIF_DHCP_STARTED)
             ESP_ERROR_CHECK(esp_netif_dhcpc_start(esp_netif));
+
+        // TODO: add DNS getting info
     }
 
     MeshDataExchangeModule::getInstance().startReceiving();
-
-    // TODO: check if unnecessary
-    // last_layer = mesh_layer;
-    // is_mesh_connected = true;
-
-    // TODO: remove or change it
-    // esp_mesh_comm_p2p_start();
-
-    // TODO: start from here communication internal
-    // TODO: start internal communication driver
 }
 
 void MeshNetworkModule::onMeshEventParentDisconnected(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -284,24 +255,7 @@ void MeshNetworkModule::onMeshEventParentDisconnected(void *arg, esp_event_base_
     mesh_event_disconnected_t *disconnected = (mesh_event_disconnected_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_PARENT_DISCONNECTED>reason:%d", disconnected->reason);
 
-    // TODO: remove or change it
-    // EventBits_t eventbits = xEventGroupGetBits(mesh_event_group); // Used to check the flags in the mesh event group
-    // If the MESH_PARENT flag is not set, return.
-    // if (!(eventbits & MESH_PARENT))
-    //    return;
-
-    // TODO: remove or change it
-    // Disconnect the node from its parent
-    // if (mesh_state.type == MESH_ROOT)
-    //{
-    //    ESP_ERROR_CHECK(esp_mesh_post_toDS_state(false));
-    //    mesh_root_reset_station_IP();
-    //}
-    // mesh_reset_status(); // Reset the node's status
-
-    // TODO: check if unnecessary
-    // is_mesh_connected = false;
-    // mesh_layer = esp_mesh_get_layer();
+    MeshDataExchangeModule::getInstance().stopReceiving();
 }
 
 void MeshNetworkModule::onMeshEventLayerChange(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -334,9 +288,8 @@ void MeshNetworkModule::onMeshEventRootAddress(void *arg, esp_event_base_t event
     mesh_event_root_address_t *root_addr = (mesh_event_root_address_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_ROOT_ADDRESS>root address:" MACSTR "", MAC2STR(root_addr->addr));
 
-    // TODO: remove or change it
-    // Update root address
-    // memcpy(mesh_state.root_addr, root_addr->addr, 6);
+    std::vector<uint8_t> root(std::vector<uint8_t>(root_addr->addr, root_addr->addr + MAC_ADDRESS_LENGTH));
+    MeshNetworkModule::getInstance().setRootAddress(root);
 }
 
 void MeshNetworkModule::onMeshEventVoteStarted(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -383,18 +336,18 @@ void MeshNetworkModule::onMeshEventToDS(void *arg, esp_event_base_t event_base, 
     mesh_event_toDS_state_t *toDs_state = (mesh_event_toDS_state_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_TODS_REACHABLE>state:%d", *toDs_state);
 
-    // TODO: remove or change it
-    // Clear to DS flag and return
-    // if (*toDs_state == MESH_TODS_UNREACHABLE)
-    // {
-    //    xEventGroupClearBits(mesh_event_group, MESH_TODS);
-    //    return;
-    // }
+    // If non-Root, return
+    if (esp_mesh_is_root())
+    {
+        MeshNetworkModule::getInstance().disconnectFromServer();
 
-    // TODO: remove or change it
-    // xEventGroupSetBits(mesh_event_group, MESH_TODS);
+        if (*toDs_state == MESH_TODS_REACHABLE)
+            MeshNetworkModule::getInstance().connectToServer();
+    }
 
-    // TODO: start external communication driver
+    // TODO: add Bootstrap message(remove the comment after test)
+    if (*toDs_state == MESH_TODS_REACHABLE)
+        DSSProtocolHandler::bootstrapSend();
 }
 
 void MeshNetworkModule::onMeshEventRootFixed(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -587,4 +540,57 @@ void MeshNetworkModule::meshEventHandler(void *arg, esp_event_base_t event_base,
         onMeshEventUnknown(arg, event_base, event_id, event_data);
         break;
     }
+}
+
+int MeshNetworkModule::connectToServer()
+{
+    // Create socket
+    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_fd < 0)
+    {
+        ESP_LOGE(moduleTag, "Failed to create socket");
+        return -1;
+    }
+
+    // TODO: change to the Kconfig or to the default values via macroses
+    struct sockaddr_in server_address;
+    server_address.sin_family = AF_INET;
+    server_address.sin_addr.s_addr = inet_addr("192.168.99.112");
+    server_address.sin_port = htons(5300);
+
+    if (connect(socket_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
+    {
+        ESP_LOGE(moduleTag, "Connection failed");
+        close(socket_fd);
+        return -1;
+    }
+
+    ESP_LOGI(moduleTag, "The connection with a server has established.");
+
+    return 0;
+}
+
+void MeshNetworkModule::disconnectFromServer()
+{
+    if (socket_fd > 0)
+    {
+        ESP_LOGI(moduleTag, "Disconnected from the server.");
+        close(socket_fd);
+        socket_fd = 0;
+    }
+}
+
+const std::vector<uint8_t> &MeshNetworkModule::getRootAddress() const
+{
+    return rootAddress;
+}
+
+void MeshNetworkModule::setRootAddress(const std::vector<uint8_t> &root)
+{
+    rootAddress = root;
+}
+
+int MeshNetworkModule::getSocket() const
+{
+    return socket_fd;
 }

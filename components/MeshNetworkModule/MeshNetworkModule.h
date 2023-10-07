@@ -16,6 +16,11 @@ class MeshNetworkModule
 public:
     static MeshNetworkModule &getInstance(void);
 
+    const std::vector<uint8_t> &getRootAddress() const;
+    void setRootAddress(const std::vector<uint8_t> &root);
+
+    int getSocket() const;
+
 private:
     static constexpr const char *moduleTag = "mesh";
 
@@ -60,6 +65,12 @@ private:
     static void onMeshEventPSParentDuty(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
     static void onMeshEventPSChildDuty(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
     static void onMeshEventUnknown(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+
+    int connectToServer();
+    void disconnectFromServer();
+
+    int socket_fd = 0;
+    std::vector<uint8_t> rootAddress;
 };
 
 #endif // MESH_NETWORK_MODULE_H
