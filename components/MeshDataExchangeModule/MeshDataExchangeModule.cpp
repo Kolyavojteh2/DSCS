@@ -157,7 +157,6 @@ esp_err_t MeshDataExchangeModule::sendToIPAsRoot(const std::vector<uint8_t> &bin
     // Get socket
     for (unsigned int tryNumber = 1; tryNumber <= RETRY_SEND_COUNT; ++tryNumber)
     {
-        // socket_fd = MeshNetworkModule::getInstance().getSocket();
         socket_fd = TCPClient::getInstance().getSocket();
         if (socket_fd <= 0)
             ESP_LOGE(moduleTag, "Got bad socket. Try number: %u. socket_fd: %d", tryNumber, socket_fd);
@@ -237,7 +236,6 @@ void MeshDataExchangeModule::receiveIPTask(void * /*unused*/)
             continue;
         }
 
-        // int socket_fd = MeshNetworkModule::getInstance().getSocket();
         int socket_fd = TCPClient::getInstance().getSocket();
 
         // Check if the socket_fd is valid
