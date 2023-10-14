@@ -14,6 +14,7 @@
 #define MAC_ADDRESS_LENGTH (6)
 #endif // MAC_ADDRESS_LENGTH
 
+// TODO: add this into Kconfig
 const double MESH_ROOT_ELECTION_THRESHOLD = 0.9;
 static const uint8_t meshId[6] = {0x77, 0x77, 0x77, 0x77, 0x77, 0x77};
 
@@ -26,24 +27,11 @@ MeshNetworkModule &MeshNetworkModule::getInstance()
 
 MeshNetworkModule::MeshNetworkModule()
 {
-    init();
-}
-
-void MeshNetworkModule::init()
-{
     // mesh initialization
     ESP_ERROR_CHECK(esp_mesh_init());
 
-    // TODO: remove this
-    // Create a mesh group event
-    // mesh_current_node_event_group_init();
-
     // register handlers
     ESP_ERROR_CHECK(esp_event_handler_register(MESH_EVENT, ESP_EVENT_ANY_ID, &meshEventHandler, NULL));
-
-    // TODO: remove this
-    // Self-organized root mode
-    // mesh_state.org = SELF_ORGANIZED;
 
     // Base mesh configuration
     initBaseConfiguration(meshId);
@@ -78,14 +66,10 @@ void MeshNetworkModule::initBaseConfiguration(const uint8_t *mesh_id)
     mesh_cfg_t cfg = MESH_INIT_CONFIG_DEFAULT();
     // mesh ID
     memcpy((uint8_t *)&cfg.mesh_id.addr, mesh_id, 6);
-    // TODO: remove next line
-    // memcpy((uint8_t *)&mesh_state.mid, mesh_id, 6);
 
     // router
     // mesh wifi channel
     cfg.channel = CONFIG_MESH_CHANNEL;
-    // TODO: remove next line
-    // mesh_state.channel = CONFIG_MESH_CHANNEL;
 
     // router: SSID and password
     cfg.router.ssid_len = strlen(CONFIG_ROUTER_SSID);
@@ -138,33 +122,12 @@ void MeshNetworkModule::initPS()
 
 void MeshNetworkModule::onMeshEventStarted(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    // TODO: remove this or change
-    // mesh_addr_t id = { 0, };
-    // esp_mesh_get_id(&id);
-    // ESP_LOGI(moduleTag, "<MESH_EVENT_MESH_STARTED>ID:" MACSTR "", MAC2STR(id.addr));
-
-    // TODO: remove this
-    // xEventGroupSetBits(mesh_event_group, MESH_ON);
-    // mesh_reset_status();
-
     ESP_LOGI(moduleTag, "<MESH_EVENT_MESH_STARTED>");
-
-    // TODO: check if unnecessary
-    // is_mesh_connected = false;
-    // mesh_layer = esp_mesh_get_layer();
 }
 
 void MeshNetworkModule::onMeshEventStopped(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    // TODO: remove this or change
-    // xEventGroupClearBits(mesh_event_group, MESH_ON);
-    // mesh_reset_status();
-
     ESP_LOGI(moduleTag, "<MESH_EVENT_STOPPED>");
-
-    // TODO: check if unnecessary
-    // is_mesh_connected = false;
-    // mesh_layer = esp_mesh_get_layer();
 
     // TODO: add reestablish connect if error
     // if (0)
@@ -178,27 +141,12 @@ void MeshNetworkModule::onMeshEventChildConnected(void *arg, esp_event_base_t ev
 {
     mesh_event_child_connected_t *child_connected = (mesh_event_child_connected_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_CHILD_CONNECTED>aid:%d, " MACSTR "", child_connected->aid, MAC2STR(child_connected->mac));
-
-    // TODO: change or remove it
-    // EventBits_t eventbits; // Used to check the flags in the mesh event group
-    // If the MESH_CHILD flag is not set in the mesh event group
-    // (i.e. this is the first child node to connect), set it
-    // eventbits = xEventGroupGetBits(mesh_event_group);
-    // if (!(eventbits & MESH_CHILD))
-    //    xEventGroupSetBits(mesh_event_group, MESH_CHILD);
 }
 
 void MeshNetworkModule::onMeshEventChildDisconnected(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     mesh_event_child_disconnected_t *child_disconnected = (mesh_event_child_disconnected_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_CHILD_DISCONNECTED>aid:%d, " MACSTR "", child_disconnected->aid, MAC2STR(child_disconnected->mac));
-
-    // TODO: change or remove it
-    // Check if the any child connected
-    // wifi_sta_list_t children; // Used to store information on the clients connected to the node's SoftAP interface
-    // ESP_ERROR_CHECK(esp_wifi_ap_get_sta_list(&children));
-    // if (children.num == 0)
-    //    xEventGroupClearBits(mesh_event_group, MESH_CHILD);
 }
 
 void MeshNetworkModule::onMeshEventRoutingTableAdd(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -266,27 +214,8 @@ void MeshNetworkModule::onMeshEventParentDisconnected(void *arg, esp_event_base_
 
 void MeshNetworkModule::onMeshEventLayerChange(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    // TODO: remove or change it
-    // mesh_event_layer_change_t *layer_change = (mesh_event_layer_change_t *)event_data;
-
-    // TODO: remove or change it
-    // mesh_state.layer = layer_change->new_layer;
-    // define the mesh type
-    // if (mesh_state.layer == MESH_ROOT_LAYER)
-    //    mesh_state.type = MESH_ROOT;
-    // else if (mesh_state.type == CONFIG_MESH_MAX_LAYER)
-    //    mesh_state.type = MESH_LEAF;
-    // else
-    //    mesh_state.type = MESH_NODE;
-
-    // TODO: check if unnecessary
-    // mesh_layer = layer_change->new_layer;
     const char *current_type = esp_mesh_is_root() ? "<ROOT>" : "";
     ESP_LOGI(moduleTag, "<MESH_EVENT_LAYER_CHANGE>layer type: %s", current_type);
-    // ESP_LOGI(moduleTag, "<MESH_EVENT_LAYER_CHANGE>layer:%d-->%d%s", last_layer, mesh_layer, current_type);
-
-    // TODO: check if unnecessary
-    // last_layer = mesh_layer;
 }
 
 void MeshNetworkModule::onMeshEventRootAddress(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -303,19 +232,11 @@ void MeshNetworkModule::onMeshEventVoteStarted(void *arg, esp_event_base_t event
     mesh_event_vote_started_t *vote_started = (mesh_event_vote_started_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_VOTE_STARTED>attempts:%d, reason:%d, rc_addr:" MACSTR "",
              vote_started->attempts, vote_started->reason, MAC2STR(vote_started->rc_addr.addr));
-
-    // TODO: check if really needing is the clear operation
-    // TODO: remove or change it
-    // xEventGroupClearBits(mesh_event_group, MESH_VOTE);
 }
 
 void MeshNetworkModule::onMeshEventVoteStopped(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     ESP_LOGI(moduleTag, "<MESH_EVENT_VOTE_STOPPED>");
-
-    // TODO: check if really needing is the set operation
-    // TODO: remove or change it
-    // xEventGroupSetBits(mesh_event_group, MESH_VOTE);
 }
 
 void MeshNetworkModule::onMeshEventRootSwitchReq(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -323,18 +244,11 @@ void MeshNetworkModule::onMeshEventRootSwitchReq(void *arg, esp_event_base_t eve
     mesh_event_root_switch_req_t *switch_req = (mesh_event_root_switch_req_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_ROOT_SWITCH_REQ>reason:%d, rc_addr:" MACSTR "",
              switch_req->reason, MAC2STR(switch_req->rc_addr.addr));
-
-    // TODO: remove or change it
-    // mesh_root_reset_station_IP();
-    // mesh_state.type = MESH_NODE;
 }
 
 void MeshNetworkModule::onMeshEventRootSwitchAck(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    // TODO: remove or change it
-    // mesh_layer = esp_mesh_get_layer();
-    // esp_mesh_get_parent_bssid(mesh_get_parrent_addr());
-    // ESP_LOGI(moduleTag, "<MESH_EVENT_ROOT_SWITCH_ACK>layer:%d, parent:" MACSTR "", mesh_layer, MAC2STR(mesh_get_parrent_addr()->addr));
+    ESP_LOGI(moduleTag, "<MESH_EVENT_ROOT_SWITCH_ACK>");
 }
 
 void MeshNetworkModule::onMeshEventToDS(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -354,14 +268,12 @@ void MeshNetworkModule::onMeshEventToDS(void *arg, esp_event_base_t event_base, 
         }
     }
 
-    // TODO: add Bootstrap message(remove the comment after test)
     if (*toDs_state == MESH_TODS_REACHABLE)
         DSSProtocolHandler::bootstrapSend();
 }
 
 void MeshNetworkModule::onMeshEventRootFixed(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    // TODO: check if this event is needing
     mesh_event_root_fixed_t *root_fixed = (mesh_event_root_fixed_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_ROOT_FIXED>%s", root_fixed->is_fixed ? "fixed" : "not fixed");
 }
@@ -371,24 +283,16 @@ void MeshNetworkModule::onMeshEventRootAskedYield(void *arg, esp_event_base_t ev
     mesh_event_root_conflict_t *root_conflict = (mesh_event_root_conflict_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_ROOT_ASKED_YIELD>" MACSTR ", rssi:%d, capacity:%d",
              MAC2STR(root_conflict->addr), root_conflict->rssi, root_conflict->capacity);
-
-    // TODO: remove or change it
-    // mesh_root_reset_station_IP();
-    // mesh_state.type = MESH_NODE;
 }
 
 void MeshNetworkModule::onMeshEventChannelSwitch(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     mesh_event_channel_switch_t *channel_switch = (mesh_event_channel_switch_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_CHANNEL_SWITCH>new channel:%d", channel_switch->channel);
-
-    // TODO: remove or change it
-    // mesh_state.channel = channel_switch->channel;
 }
 
 void MeshNetworkModule::onMeshEventScanDone(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    // TODO: check if this module is needing
     mesh_event_scan_done_t *scan_done = (mesh_event_scan_done_t *)event_data;
     ESP_LOGI(moduleTag, "<MESH_EVENT_SCAN_DONE>number:%d", scan_done->number);
 }
