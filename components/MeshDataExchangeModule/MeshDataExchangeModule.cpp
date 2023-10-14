@@ -29,17 +29,7 @@ MeshDataExchangeModule &MeshDataExchangeModule::getInstance()
     return instance;
 }
 
-MeshDataExchangeModule::MeshDataExchangeModule()
-{
-    const int maxSemaphoreCount = 2;
-    m_receivingSemaphore = xSemaphoreCreateCounting(maxSemaphoreCount, 0);
-
-    const int stackSize = 4096;
-    const int priorityReceiving = 1;
-    const int coreNumber = 1;
-    xTaskCreatePinnedToCore(receiveMeshTask, "receiveMeshTask", stackSize, NULL, priorityReceiving, NULL, coreNumber);
-    xTaskCreatePinnedToCore(receiveIPTask, "receiveIPTask", stackSize, NULL, priorityReceiving, NULL, coreNumber);
-}
+MeshDataExchangeModule::MeshDataExchangeModule() {}
 
 bool MeshDataExchangeModule::checkData(const std::vector<uint8_t> &data)
 {
@@ -193,9 +183,6 @@ esp_err_t MeshDataExchangeModule::sendFromIP(const std::vector<uint8_t> &bin)
 void MeshDataExchangeModule::startReceiving(void)
 {
     m_receivingState = true;
-    // Need give semaphore 2 times
-    xSemaphoreGive(m_receivingSemaphore);
-    xSemaphoreGive(m_receivingSemaphore);
 }
 
 void MeshDataExchangeModule::stopReceiving(void)
@@ -250,7 +237,10 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
     {
         // Check the receiving state
         if (MeshDataExchangeModule::getInstance().m_receivingState == false)
-            xSemaphoreTake(MeshDataExchangeModule::getInstance().m_receivingSemaphore, portMAX_DELAY);
+        {
+            vTaskSuspend(NULL);
+            continue;
+        }
 
         dataDes.size = MESH_MTU;
         // TODO: check if needing it
@@ -428,4 +418,41 @@ bool MeshDataExchangeModule::isFromExternalIPToNode(const int flag)
         return true;
 
     return false;
+}
+
+void MeshDataExchangeModule::createReceiveIPTask()
+{
+    if (m_receiveIPTaskHandle)
+        return;
+
+    xTaskCreatePinnedToCore(MeshDataExchangeModule::receiveIPTask,
+                            RECEIVE_IP_TASK_NAME,
+                            RECEIVE_TASK_STACK_SIZE,
+                            NULL,
+                            RECEIVE_TASK_PRIORITY,
+                            &m_receiveIPTaskHandle,
+                            RECEIVE_TASK_CORE_NUMBER);
+}
+
+void MeshDataExchangeModule::createReceiveMeshTask()
+{
+    if (m_receiveMeshTaskHandle)
+        return;
+
+    xTaskCreatePinnedToCore(MeshDataExchangeModule::receiveMeshTask,
+                            RECEIVE_MESH_TASK_NAME,
+                            RECEIVE_TASK_STACK_SIZE,
+                            NULL,
+                            RECEIVE_TASK_PRIORITY,
+                            &m_receiveMeshTaskHandle,
+                            RECEIVE_TASK_CORE_NUMBER);
+}
+
+TaskHandle_t MeshDataExchangeModule::getReceiveIPTaskHandle() const
+{
+    return m_receiveIPTaskHandle;
+}
+TaskHandle_t MeshDataExchangeModule::getReceiveMeshTaskHandle() const
+{
+    return m_receiveMeshTaskHandle;
 }
