@@ -11,6 +11,7 @@
 
 namespace DSSProtocolHandler
 {
+    static constexpr const char *moduleTag = "DSS_ProtocolHandler";
 
     void aliveNodeRequestHandler(const std::vector<uint8_t> &input);
 
