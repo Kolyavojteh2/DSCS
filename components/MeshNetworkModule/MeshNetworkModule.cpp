@@ -323,10 +323,7 @@ void MeshNetworkModule::onMeshEventRootSwitchReq(void *arg, esp_event_base_t eve
 
 void MeshNetworkModule::onMeshEventRootSwitchAck(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    // TODO: remove or change it
-    // mesh_layer = esp_mesh_get_layer();
-    // esp_mesh_get_parent_bssid(mesh_get_parrent_addr());
-    // ESP_LOGI(moduleTag, "<MESH_EVENT_ROOT_SWITCH_ACK>layer:%d, parent:" MACSTR "", mesh_layer, MAC2STR(mesh_get_parrent_addr()->addr));
+    ESP_LOGI(moduleTag, "<MESH_EVENT_ROOT_SWITCH_ACK>");
 }
 
 void MeshNetworkModule::onMeshEventToDS(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
