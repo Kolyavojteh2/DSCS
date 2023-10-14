@@ -2,6 +2,7 @@
 #include "MeshDataExchangeModule.h"
 #include "WifiModule.h"
 #include "DSSProtocolHandler.h"
+#include "TCPClient.h"
 
 #include <esp_netif.h>
 
@@ -348,6 +349,7 @@ void MeshNetworkModule::onMeshEventToDS(void *arg, esp_event_base_t event_base, 
 
         if (*toDs_state == MESH_TODS_REACHABLE)
         {
+            TCPClient::getInstance().tryConnect();
             MeshDataExchangeModule::getInstance().createReceiveIPTask();
         }
     }

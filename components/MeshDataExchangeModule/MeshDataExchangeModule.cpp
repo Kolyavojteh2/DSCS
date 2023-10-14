@@ -2,6 +2,7 @@
 #include "MeshNetworkModule.h"
 #include "WifiModule.h"
 #include "DSS_Protocol.h"
+#include "TCPClient.h"
 
 #include <esp_mesh.h>
 #include <esp_log.h>
@@ -11,6 +12,14 @@
 #include "lwip/netdb.h"
 
 #include <vector>
+
+#ifndef RETRY_SEND_COUNT
+#define RETRY_SEND_COUNT (5)
+#endif // RETRY_SEND_COUNT
+
+#ifndef RETRY_DELAY_BETWEEN_SENDING
+#define RETRY_DELAY_BETWEEN_SENDING (2000)
+#endif // RETRY_DELAY_BETWEEN_SENDING
 
 #ifndef MAC_ADDRESS_LENGTH
 #define MAC_ADDRESS_LENGTH (6)
@@ -143,15 +152,37 @@ esp_err_t MeshDataExchangeModule::sendToIPAsNode(const std::vector<uint8_t> &bin
 
 esp_err_t MeshDataExchangeModule::sendToIPAsRoot(const std::vector<uint8_t> &bin)
 {
-    int socket_fd = MeshNetworkModule::getInstance().getSocket();
+    int socket_fd;
 
-    int sentBytes = write(socket_fd, bin.data(), bin.size());
-    if (sentBytes != bin.size())
+    // Get socket
+    for (unsigned int tryNumber = 1; tryNumber <= RETRY_SEND_COUNT; ++tryNumber)
     {
-        // TODO: add error handling
-        ESP_LOGE(moduleTag, "TCP send(write) error. Sent bytes: %d. Packet size: %d", sentBytes, bin.size());
-        return ESP_FAIL;
+        // socket_fd = MeshNetworkModule::getInstance().getSocket();
+        socket_fd = TCPClient::getInstance().getSocket();
+        if (socket_fd <= 0)
+            ESP_LOGE(moduleTag, "Got bad socket. Try number: %u. socket_fd: %d", tryNumber, socket_fd);
+        else
+            break;
+
+        vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY_BETWEEN_SENDING));
+        if (tryNumber == RETRY_SEND_COUNT)
+            return ESP_FAIL;
     }
+
+    // Send data
+    for (unsigned int tryNumber = 1; tryNumber <= RETRY_SEND_COUNT; ++tryNumber)
+    {
+        int sentBytes = write(socket_fd, bin.data(), bin.size());
+        if (sentBytes != bin.size())
+            ESP_LOGE(moduleTag, "TCP send(write) error. Try number: %u. Sent bytes: %d. Packet size: %d", tryNumber, sentBytes, bin.size());
+        else
+            break;
+
+        vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY_BETWEEN_SENDING));
+        if (tryNumber == RETRY_SEND_COUNT)
+            return ESP_FAIL;
+    }
+
     return ESP_OK;
 }
 
@@ -192,27 +223,66 @@ void MeshDataExchangeModule::stopReceiving(void)
 
 void MeshDataExchangeModule::receiveIPTask(void * /*unused*/)
 {
+    ESP_LOGI(moduleTag, "Receiving IP started.");
+
     uint8_t recvBuffer[MESH_MTU];
     ssize_t gotBytes = 0;
 
     while (1)
     {
-        int socket_fd = MeshNetworkModule::getInstance().getSocket();
-
-        // TODO: add sync with semaphores. (remove comment after testing)
         // Check the receiving state
-        if (MeshDataExchangeModule::getInstance().m_receivingState == false || socket_fd <= 0)
-            xSemaphoreTake(MeshDataExchangeModule::getInstance().m_receivingSemaphore, portMAX_DELAY);
+        if (MeshDataExchangeModule::getInstance().m_receivingState == false)
+        {
+            vTaskSuspend(NULL);
+            continue;
+        }
+
+        // int socket_fd = MeshNetworkModule::getInstance().getSocket();
+        int socket_fd = TCPClient::getInstance().getSocket();
+
+        // Check if the socket_fd is valid
+        if (socket_fd <= 0)
+        {
+            vTaskSuspend(NULL);
+            continue;
+        }
+
+        // Add timeout for listening
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(socket_fd, &read_fds);
+
+        // TODO: change timeout
+        struct timeval timeout;
+        timeout.tv_sec = 5; // in seconds
+        timeout.tv_usec = 0;
+
+        int ready = select(socket_fd + 1, &read_fds, NULL, NULL, &timeout);
+        if (ready == 0)
+            continue;
+
+        if (ready < 0)
+        {
+            ESP_LOGE(moduleTag, "select error.");
+            continue;
+        }
 
         gotBytes = read(socket_fd, recvBuffer, MESH_MTU);
-        if (gotBytes < 0)
+        if (gotBytes <= 0)
         {
+            int errnoValue = errno;
             // TODO: add handling errno errors
+            // TODO: remove hardcode
+            if (gotBytes < 0 && errnoValue == 128)
+                TCPClient::getInstance().closeSocket();
+
+            ESP_LOGW(moduleTag, "read() returns: %d", gotBytes);
+            ESP_LOGW(moduleTag, "errno: %d", errnoValue);
             continue;
         }
 
         // TODO: check if it is needing
-        ESP_LOGI(moduleTag, "Received data from MESH: %s", recvBuffer);
+        ESP_LOGI(moduleTag, "Received data from IP: %s", recvBuffer);
 
         std::vector<uint8_t> bin(recvBuffer, recvBuffer + gotBytes);
         int recvFlag = MeshPacketFlag_t::FromIP;
