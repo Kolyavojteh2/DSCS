@@ -302,10 +302,16 @@ void MeshDataExchangeModule::analyzeAndProcessData(const std::vector<uint8_t> bi
     DSS_Protocol_t header = DSS_Protocol_t::makeHeaderDataOnly(bin);
 
     if (isNeedToHandle(header, flag))
+    {
+        ESP_LOGI(moduleTag, "Handle this packet.");
         handleReceivedData(bin, flag);
+    }
 
     if (isNeedToRetransmit(header, flag))
+    {
+        ESP_LOGI(moduleTag, "Retransmit this packet.");
         retransmitReceivedData(bin, flag);
+    }
 }
 
 void MeshDataExchangeModule::handleReceivedData(const std::vector<uint8_t> bin, const int flag)
