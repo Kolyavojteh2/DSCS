@@ -10,6 +10,7 @@ idf_component_register(
     "DSS_Protocol"
     "WifiModule"
     "MeshNetworkModule"
+    "TCPClient"
 
     PRIV_REQUIRES
     "freertos"

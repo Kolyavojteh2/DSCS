@@ -2,6 +2,7 @@
 #include "MeshNetworkModule.h"
 #include "WifiModule.h"
 #include "DSS_Protocol.h"
+#include "TCPClient.h"
 
 #include <esp_mesh.h>
 #include <esp_log.h>
@@ -11,6 +12,14 @@
 #include "lwip/netdb.h"
 
 #include <vector>
+
+#ifndef RETRY_SEND_COUNT
+#define RETRY_SEND_COUNT (5)
+#endif // RETRY_SEND_COUNT
+
+#ifndef RETRY_DELAY_BETWEEN_SENDING
+#define RETRY_DELAY_BETWEEN_SENDING (2000)
+#endif // RETRY_DELAY_BETWEEN_SENDING
 
 #ifndef MAC_ADDRESS_LENGTH
 #define MAC_ADDRESS_LENGTH (6)
@@ -29,17 +38,7 @@ MeshDataExchangeModule &MeshDataExchangeModule::getInstance()
     return instance;
 }
 
-MeshDataExchangeModule::MeshDataExchangeModule()
-{
-    const int maxSemaphoreCount = 2;
-    m_receivingSemaphore = xSemaphoreCreateCounting(maxSemaphoreCount, 0);
-
-    const int stackSize = 4096;
-    const int priorityReceiving = 1;
-    const int coreNumber = 1;
-    xTaskCreatePinnedToCore(receiveMeshTask, "receiveMeshTask", stackSize, NULL, priorityReceiving, NULL, coreNumber);
-    xTaskCreatePinnedToCore(receiveIPTask, "receiveIPTask", stackSize, NULL, priorityReceiving, NULL, coreNumber);
-}
+MeshDataExchangeModule::MeshDataExchangeModule() {}
 
 bool MeshDataExchangeModule::checkData(const std::vector<uint8_t> &data)
 {
@@ -153,15 +152,36 @@ esp_err_t MeshDataExchangeModule::sendToIPAsNode(const std::vector<uint8_t> &bin
 
 esp_err_t MeshDataExchangeModule::sendToIPAsRoot(const std::vector<uint8_t> &bin)
 {
-    int socket_fd = MeshNetworkModule::getInstance().getSocket();
+    int socket_fd;
 
-    int sentBytes = write(socket_fd, bin.data(), bin.size());
-    if (sentBytes != bin.size())
+    // Get socket
+    for (unsigned int tryNumber = 1; tryNumber <= RETRY_SEND_COUNT; ++tryNumber)
     {
-        // TODO: add error handling
-        ESP_LOGE(moduleTag, "TCP send(write) error. Sent bytes: %d. Packet size: %d", sentBytes, bin.size());
-        return ESP_FAIL;
+        socket_fd = TCPClient::getInstance().getSocket();
+        if (socket_fd <= 0)
+            ESP_LOGE(moduleTag, "Got bad socket. Try number: %u. socket_fd: %d", tryNumber, socket_fd);
+        else
+            break;
+
+        vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY_BETWEEN_SENDING));
+        if (tryNumber == RETRY_SEND_COUNT)
+            return ESP_FAIL;
     }
+
+    // Send data
+    for (unsigned int tryNumber = 1; tryNumber <= RETRY_SEND_COUNT; ++tryNumber)
+    {
+        int sentBytes = write(socket_fd, bin.data(), bin.size());
+        if (sentBytes != bin.size())
+            ESP_LOGE(moduleTag, "TCP send(write) error. Try number: %u. Sent bytes: %d. Packet size: %d", tryNumber, sentBytes, bin.size());
+        else
+            break;
+
+        vTaskDelay(pdMS_TO_TICKS(RETRY_DELAY_BETWEEN_SENDING));
+        if (tryNumber == RETRY_SEND_COUNT)
+            return ESP_FAIL;
+    }
+
     return ESP_OK;
 }
 
@@ -193,9 +213,6 @@ esp_err_t MeshDataExchangeModule::sendFromIP(const std::vector<uint8_t> &bin)
 void MeshDataExchangeModule::startReceiving(void)
 {
     m_receivingState = true;
-    // Need give semaphore 2 times
-    xSemaphoreGive(m_receivingSemaphore);
-    xSemaphoreGive(m_receivingSemaphore);
 }
 
 void MeshDataExchangeModule::stopReceiving(void)
@@ -205,27 +222,65 @@ void MeshDataExchangeModule::stopReceiving(void)
 
 void MeshDataExchangeModule::receiveIPTask(void * /*unused*/)
 {
+    ESP_LOGI(moduleTag, "Receiving IP started.");
+
     uint8_t recvBuffer[MESH_MTU];
     ssize_t gotBytes = 0;
 
     while (1)
     {
-        int socket_fd = MeshNetworkModule::getInstance().getSocket();
-
-        // TODO: add sync with semaphores. (remove comment after testing)
         // Check the receiving state
-        if (MeshDataExchangeModule::getInstance().m_receivingState == false || socket_fd <= 0)
-            xSemaphoreTake(MeshDataExchangeModule::getInstance().m_receivingSemaphore, portMAX_DELAY);
+        if (MeshDataExchangeModule::getInstance().m_receivingState == false)
+        {
+            vTaskSuspend(NULL);
+            continue;
+        }
+
+        int socket_fd = TCPClient::getInstance().getSocket();
+
+        // Check if the socket_fd is valid
+        if (socket_fd <= 0)
+        {
+            vTaskSuspend(NULL);
+            continue;
+        }
+
+        // Add timeout for listening
+        fd_set read_fds;
+        FD_ZERO(&read_fds);
+        FD_SET(socket_fd, &read_fds);
+
+        // TODO: change timeout
+        struct timeval timeout;
+        timeout.tv_sec = 5; // in seconds
+        timeout.tv_usec = 0;
+
+        int ready = select(socket_fd + 1, &read_fds, NULL, NULL, &timeout);
+        if (ready == 0)
+            continue;
+
+        if (ready < 0)
+        {
+            ESP_LOGE(moduleTag, "select error.");
+            continue;
+        }
 
         gotBytes = read(socket_fd, recvBuffer, MESH_MTU);
-        if (gotBytes < 0)
+        if (gotBytes <= 0)
         {
+            int errnoValue = errno;
             // TODO: add handling errno errors
+            // TODO: remove hardcode
+            if (gotBytes < 0 && errnoValue == 128)
+                TCPClient::getInstance().closeSocket();
+
+            ESP_LOGW(moduleTag, "read() returns: %d", gotBytes);
+            ESP_LOGW(moduleTag, "errno: %d", errnoValue);
             continue;
         }
 
         // TODO: check if it is needing
-        ESP_LOGI(moduleTag, "Received data from MESH: %s", recvBuffer);
+        ESP_LOGI(moduleTag, "Received data from IP: %s", recvBuffer);
 
         std::vector<uint8_t> bin(recvBuffer, recvBuffer + gotBytes);
         int recvFlag = MeshPacketFlag_t::FromIP;
@@ -250,7 +305,10 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
     {
         // Check the receiving state
         if (MeshDataExchangeModule::getInstance().m_receivingState == false)
-            xSemaphoreTake(MeshDataExchangeModule::getInstance().m_receivingSemaphore, portMAX_DELAY);
+        {
+            vTaskSuspend(NULL);
+            continue;
+        }
 
         dataDes.size = MESH_MTU;
         // TODO: check if needing it
@@ -261,7 +319,6 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
         if (recvRet != ESP_OK)
         {
             // TODO: add error handling
-            // mesh_receive_error_handler(recvRet, &source, &dataDes, portMAX_DELAY, recvFlag, &recvOpt);
             continue;
         }
 
@@ -270,30 +327,6 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
 
         std::vector<uint8_t> bin(dataDes.data, dataDes.data + dataDes.size);
         analyzeAndProcessData(bin, recvFlag);
-
-        /*
-        // Receive mechanism handlers
-        if (isToExternalIP(recvFlag))
-        {
-            ESP_LOGI(moduleTag, "Destination: toDS");
-            // from node to external IP
-            m_mechanismToExternalIP.run(source, dataDes);
-        }
-
-        if (isFromExternalIPToNode(recvFlag))
-        {
-            ESP_LOGI(moduleTag, "Destination: fromDS");
-            // from external IP
-            m_mechanismFromExternalIP.run(source, dataDes);
-        }
-
-        if (isFromNodeToNode(recvFlag))
-        {
-            ESP_LOGI(moduleTag, "Destination: P2P");
-            // from node
-            m_mechanismToNode.run(source, dataDes);
-        }
-        */
     }
 }
 
@@ -302,10 +335,16 @@ void MeshDataExchangeModule::analyzeAndProcessData(const std::vector<uint8_t> bi
     DSS_Protocol_t header = DSS_Protocol_t::makeHeaderDataOnly(bin);
 
     if (isNeedToHandle(header, flag))
+    {
+        ESP_LOGI(moduleTag, "Handle this packet.");
         handleReceivedData(bin, flag);
+    }
 
     if (isNeedToRetransmit(header, flag))
+    {
+        ESP_LOGI(moduleTag, "Retransmit this packet.");
         retransmitReceivedData(bin, flag);
+    }
 }
 
 void MeshDataExchangeModule::handleReceivedData(const std::vector<uint8_t> bin, const int flag)
@@ -422,4 +461,41 @@ bool MeshDataExchangeModule::isFromExternalIPToNode(const int flag)
         return true;
 
     return false;
+}
+
+void MeshDataExchangeModule::createReceiveIPTask()
+{
+    if (m_receiveIPTaskHandle)
+        return;
+
+    xTaskCreatePinnedToCore(MeshDataExchangeModule::receiveIPTask,
+                            RECEIVE_IP_TASK_NAME,
+                            RECEIVE_TASK_STACK_SIZE,
+                            NULL,
+                            RECEIVE_TASK_PRIORITY,
+                            &m_receiveIPTaskHandle,
+                            RECEIVE_TASK_CORE_NUMBER);
+}
+
+void MeshDataExchangeModule::createReceiveMeshTask()
+{
+    if (m_receiveMeshTaskHandle)
+        return;
+
+    xTaskCreatePinnedToCore(MeshDataExchangeModule::receiveMeshTask,
+                            RECEIVE_MESH_TASK_NAME,
+                            RECEIVE_TASK_STACK_SIZE,
+                            NULL,
+                            RECEIVE_TASK_PRIORITY,
+                            &m_receiveMeshTaskHandle,
+                            RECEIVE_TASK_CORE_NUMBER);
+}
+
+TaskHandle_t MeshDataExchangeModule::getReceiveIPTaskHandle() const
+{
+    return m_receiveIPTaskHandle;
+}
+TaskHandle_t MeshDataExchangeModule::getReceiveMeshTaskHandle() const
+{
+    return m_receiveMeshTaskHandle;
 }

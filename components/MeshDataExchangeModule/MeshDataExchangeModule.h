@@ -6,11 +6,19 @@
 
 #include <esp_mesh.h>
 #include <freertos/FreeRTOS.h>
-#include <freertos/semphr.h>
+#include <freertos/task.h>
 
 #include "PacketHandleMechanism.h"
 
 #include "DSS_Protocol.h"
+
+#define RECEIVE_MESH_TASK_NAME "receiveMeshTask"
+#define RECEIVE_IP_TASK_NAME "receiveIPTask"
+#define CLEANER_TASK_NAME "cleanerTask"
+
+#define RECEIVE_TASK_STACK_SIZE (4096)
+#define RECEIVE_TASK_PRIORITY (1)
+#define RECEIVE_TASK_CORE_NUMBER (1)
 
 enum MeshPacketFlag_t
 {
@@ -41,6 +49,12 @@ public:
     static PacketHandleMechanism m_mechanismToNode;
 
     static PacketHandleMechanism m_mechanismPacketHandlers;
+
+    void createReceiveIPTask();
+    void createReceiveMeshTask();
+
+    TaskHandle_t getReceiveIPTaskHandle() const;
+    TaskHandle_t getReceiveMeshTaskHandle() const;
 
 private:
     static constexpr const char *moduleTag = "MDEM";
@@ -77,7 +91,10 @@ private:
 
     // Receive control
     bool m_receivingState = false;
-    SemaphoreHandle_t m_receivingSemaphore;
+
+    // Task handles
+    TaskHandle_t m_receiveIPTaskHandle = NULL;
+    TaskHandle_t m_receiveMeshTaskHandle = NULL;
 };
 
 #endif // MESH_DATA_EXCHANGE_MODULE_H

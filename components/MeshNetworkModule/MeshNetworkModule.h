@@ -19,7 +19,8 @@ public:
     const std::vector<uint8_t> &getRootAddress() const;
     void setRootAddress(const std::vector<uint8_t> &root);
 
-    int getSocket() const;
+    const std::vector<uint8_t> &getParentAddress() const;
+    void setParentAddress(const std::vector<uint8_t> &parent);
 
 private:
     static constexpr const char *moduleTag = "mesh";
@@ -66,11 +67,8 @@ private:
     static void onMeshEventPSChildDuty(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
     static void onMeshEventUnknown(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
-    int connectToServer();
-    void disconnectFromServer();
-
-    int socket_fd = 0;
     std::vector<uint8_t> rootAddress;
+    std::vector<uint8_t> parentAddress;
 };
 
 #endif // MESH_NETWORK_MODULE_H

@@ -2,6 +2,7 @@
 #include "MeshDataExchangeModule.h"
 #include "WifiModule.h"
 #include "DSSProtocolHandler.h"
+#include "TCPClient.h"
 
 #include <esp_netif.h>
 
@@ -229,6 +230,9 @@ void MeshNetworkModule::onMeshEventParentConnected(void *arg, esp_event_base_t e
     ESP_LOGI(moduleTag, "<MESH_EVENT_PARENT_CONNECTED> parent:" MACSTR "%s, duty:%d",
              MAC2STR(parrentMAC.addr), current_type, connected->duty);
 
+    std::vector<uint8_t> parent(parrentMAC.addr, parrentMAC.addr + MAC_ADDRESS_LENGTH);
+    MeshNetworkModule::getInstance().setParentAddress(parent);
+
     if (esp_mesh_is_root())
     {
         // TODO: clean code
@@ -248,6 +252,8 @@ void MeshNetworkModule::onMeshEventParentConnected(void *arg, esp_event_base_t e
     }
 
     MeshDataExchangeModule::getInstance().startReceiving();
+
+    MeshDataExchangeModule::getInstance().createReceiveMeshTask();
 }
 
 void MeshNetworkModule::onMeshEventParentDisconnected(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -339,10 +345,13 @@ void MeshNetworkModule::onMeshEventToDS(void *arg, esp_event_base_t event_base, 
     // If non-Root, return
     if (esp_mesh_is_root())
     {
-        MeshNetworkModule::getInstance().disconnectFromServer();
+        TCPClient::getInstance().closeSocket();
 
         if (*toDs_state == MESH_TODS_REACHABLE)
-            MeshNetworkModule::getInstance().connectToServer();
+        {
+            TCPClient::getInstance().tryConnect();
+            MeshDataExchangeModule::getInstance().createReceiveIPTask();
+        }
     }
 
     // TODO: add Bootstrap message(remove the comment after test)
@@ -542,44 +551,6 @@ void MeshNetworkModule::meshEventHandler(void *arg, esp_event_base_t event_base,
     }
 }
 
-int MeshNetworkModule::connectToServer()
-{
-    // Create socket
-    socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_fd < 0)
-    {
-        ESP_LOGE(moduleTag, "Failed to create socket");
-        return -1;
-    }
-
-    // TODO: change to the Kconfig or to the default values via macroses
-    struct sockaddr_in server_address;
-    server_address.sin_family = AF_INET;
-    server_address.sin_addr.s_addr = inet_addr("192.168.99.112");
-    server_address.sin_port = htons(5300);
-
-    if (connect(socket_fd, (struct sockaddr *)&server_address, sizeof(server_address)) < 0)
-    {
-        ESP_LOGE(moduleTag, "Connection failed");
-        close(socket_fd);
-        return -1;
-    }
-
-    ESP_LOGI(moduleTag, "The connection with a server has established.");
-
-    return 0;
-}
-
-void MeshNetworkModule::disconnectFromServer()
-{
-    if (socket_fd > 0)
-    {
-        ESP_LOGI(moduleTag, "Disconnected from the server.");
-        close(socket_fd);
-        socket_fd = 0;
-    }
-}
-
 const std::vector<uint8_t> &MeshNetworkModule::getRootAddress() const
 {
     return rootAddress;
@@ -590,7 +561,12 @@ void MeshNetworkModule::setRootAddress(const std::vector<uint8_t> &root)
     rootAddress = root;
 }
 
-int MeshNetworkModule::getSocket() const
+const std::vector<uint8_t> &MeshNetworkModule::getParentAddress() const
 {
-    return socket_fd;
+    return parentAddress;
+}
+
+void MeshNetworkModule::setParentAddress(const std::vector<uint8_t> &parent)
+{
+    parentAddress = parent;
 }

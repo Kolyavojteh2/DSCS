@@ -32,7 +32,11 @@ void DSSProtocolHandler::aliveNodeRequestHandler(const std::vector<uint8_t> &inp
         // destination MAC
         response.destinationMAC = request.sourceMAC;
 
-        // Packet response is empty
+        // AliveNodeResponsePacket
+        AliveNodeResponsePacket_t *packet = dynamic_cast<AliveNodeResponsePacket_t *>(response.packet);
+
+        // parent MAC
+        packet->parentMAC = MeshNetworkModule::getInstance().getParentAddress();
     };
 
     DSS_Protocol_t response(PacketType_t::AliveNodeResponsePacket);
@@ -70,6 +74,8 @@ void DSSProtocolHandler::bootstrapSend()
         esp_mesh_get_id(&networkID);
         packet->networkID = std::vector<uint8_t>(networkID.addr, networkID.addr + NETWORK_ID_LENGTH);
     };
+
+    ESP_LOGI(moduleTag, "Sent bootstrap");
 
     DSS_Protocol_t bootstrap(PacketType_t::BootstrapPacket);
     prepareBootstrapPacket(bootstrap);
