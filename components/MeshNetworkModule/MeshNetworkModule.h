@@ -19,6 +19,9 @@ public:
     const std::vector<uint8_t> &getRootAddress() const;
     void setRootAddress(const std::vector<uint8_t> &root);
 
+    const std::vector<uint8_t> &getParentAddress() const;
+    void setParentAddress(const std::vector<uint8_t> &parent);
+
     int getSocket() const;
 
 private:
@@ -71,6 +74,7 @@ private:
 
     int socket_fd = 0;
     std::vector<uint8_t> rootAddress;
+    std::vector<uint8_t> parentAddress;
 };
 
 #endif // MESH_NETWORK_MODULE_H

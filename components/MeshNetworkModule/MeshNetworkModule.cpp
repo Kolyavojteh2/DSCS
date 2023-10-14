@@ -229,6 +229,9 @@ void MeshNetworkModule::onMeshEventParentConnected(void *arg, esp_event_base_t e
     ESP_LOGI(moduleTag, "<MESH_EVENT_PARENT_CONNECTED> parent:" MACSTR "%s, duty:%d",
              MAC2STR(parrentMAC.addr), current_type, connected->duty);
 
+    std::vector<uint8_t> parent(parrentMAC.addr, parrentMAC.addr + MAC_ADDRESS_LENGTH);
+    MeshNetworkModule::getInstance().setParentAddress(parent);
+
     if (esp_mesh_is_root())
     {
         // TODO: clean code
@@ -593,4 +596,14 @@ void MeshNetworkModule::setRootAddress(const std::vector<uint8_t> &root)
 int MeshNetworkModule::getSocket() const
 {
     return socket_fd;
+}
+
+const std::vector<uint8_t> &MeshNetworkModule::getParentAddress() const
+{
+    return parentAddress;
+}
+
+void MeshNetworkModule::setParentAddress(const std::vector<uint8_t> &parent)
+{
+    parentAddress = parent;
 }
