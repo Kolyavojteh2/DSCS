@@ -25,11 +25,6 @@ MeshNetworkModule &MeshNetworkModule::getInstance()
 
 MeshNetworkModule::MeshNetworkModule()
 {
-    init();
-}
-
-void MeshNetworkModule::init()
-{
     // mesh initialization
     ESP_ERROR_CHECK(esp_mesh_init());
 

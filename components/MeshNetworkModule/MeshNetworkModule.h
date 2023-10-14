@@ -31,7 +31,6 @@ private:
     MeshNetworkModule(const MeshNetworkModule &) = delete;
     MeshNetworkModule &operator=(const MeshNetworkModule &) = delete;
 
-    void init();
     void initBaseConfiguration(const uint8_t *mesh_id);
     void initSharedSettings();
     void initPS();
