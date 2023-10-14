@@ -321,7 +321,6 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
         if (recvRet != ESP_OK)
         {
             // TODO: add error handling
-            // mesh_receive_error_handler(recvRet, &source, &dataDes, portMAX_DELAY, recvFlag, &recvOpt);
             continue;
         }
 
@@ -330,30 +329,6 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
 
         std::vector<uint8_t> bin(dataDes.data, dataDes.data + dataDes.size);
         analyzeAndProcessData(bin, recvFlag);
-
-        /*
-        // Receive mechanism handlers
-        if (isToExternalIP(recvFlag))
-        {
-            ESP_LOGI(moduleTag, "Destination: toDS");
-            // from node to external IP
-            m_mechanismToExternalIP.run(source, dataDes);
-        }
-
-        if (isFromExternalIPToNode(recvFlag))
-        {
-            ESP_LOGI(moduleTag, "Destination: fromDS");
-            // from external IP
-            m_mechanismFromExternalIP.run(source, dataDes);
-        }
-
-        if (isFromNodeToNode(recvFlag))
-        {
-            ESP_LOGI(moduleTag, "Destination: P2P");
-            // from node
-            m_mechanismToNode.run(source, dataDes);
-        }
-        */
     }
 }
 
