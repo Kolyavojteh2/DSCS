@@ -251,6 +251,8 @@ void MeshNetworkModule::onMeshEventParentConnected(void *arg, esp_event_base_t e
     }
 
     MeshDataExchangeModule::getInstance().startReceiving();
+
+    MeshDataExchangeModule::getInstance().createReceiveMeshTask();
 }
 
 void MeshNetworkModule::onMeshEventParentDisconnected(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
@@ -346,6 +348,7 @@ void MeshNetworkModule::onMeshEventToDS(void *arg, esp_event_base_t event_base, 
 
         if (*toDs_state == MESH_TODS_REACHABLE)
         {
+            MeshDataExchangeModule::getInstance().createReceiveIPTask();
         }
     }
 
