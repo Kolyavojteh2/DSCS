@@ -21,129 +21,369 @@ FlashStorage::FlashStorage()
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK(ret);
+}
 
+int FlashStorage::checkNamespaceSize(const std::string &ns)
+{
     // TODO: remove hardcode
-    ret = nvs_open("storage", NVS_READWRITE, &m_handle);
+    if (ns.size() > 15)
+        return -1;
 
-    if (ret != ESP_OK)
-        return;
+    return 0;
 }
 
-esp_err_t FlashStorage::set_i32(const std::string &key, const int32_t value)
+int FlashStorage::checkKeySize(const std::string &key)
 {
-    esp_err_t ret = nvs_set_i32(m_handle, key.c_str(), value);
-    if (ret != ESP_OK)
-        return ret;
+    // TODO: remove hardcode
+    if (key.size() > 15)
+        return -1;
 
-    return nvs_commit(m_handle);
+    return 0;
 }
 
-esp_err_t FlashStorage::get_i32(const std::string &key, int32_t &value)
+esp_err_t FlashStorage::set_i32(const std::string &ns, const std::string &key, const int32_t value)
 {
-    return nvs_get_i32(m_handle, key.c_str(), &value);
-}
+    if (checkKeySize(key))
+        return ESP_FAIL;
 
-esp_err_t FlashStorage::set_u32(const std::string &key, const uint32_t value)
-{
-    esp_err_t ret = nvs_set_u32(m_handle, key.c_str(), value);
-    if (ret != ESP_OK)
-        return ret;
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
 
-    return nvs_commit(m_handle);
-}
-
-esp_err_t FlashStorage::get_u32(const std::string &key, uint32_t &value)
-{
-    return nvs_get_u32(m_handle, key.c_str(), &value);
-}
-
-esp_err_t FlashStorage::set_i64(const std::string &key, const int64_t value)
-{
-    esp_err_t ret = nvs_set_i64(m_handle, key.c_str(), value);
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
     if (ret != ESP_OK)
         return ret;
 
-    return nvs_commit(m_handle);
+    ret = nvs_set_i32(handle, key.c_str(), value);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    ret = nvs_commit(handle);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
 }
 
-esp_err_t FlashStorage::get_i64(const std::string &key, int64_t &value)
+esp_err_t FlashStorage::get_i32(const std::string &ns, const std::string &key, int32_t &value)
 {
-    return nvs_get_i64(m_handle, key.c_str(), &value);
-}
+    if (checkKeySize(key))
+        return ESP_FAIL;
 
-esp_err_t FlashStorage::set_u64(const std::string &key, const uint64_t value)
-{
-    esp_err_t ret = nvs_set_u64(m_handle, key.c_str(), value);
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
     if (ret != ESP_OK)
         return ret;
 
-    return nvs_commit(m_handle);
+    ret = nvs_get_i32(handle, key.c_str(), &value);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
 }
 
-esp_err_t FlashStorage::get_u64(const std::string &key, uint64_t &value)
+esp_err_t FlashStorage::set_u32(const std::string &ns, const std::string &key, const uint32_t value)
 {
-    return nvs_get_u64(m_handle, key.c_str(), &value);
-}
+    if (checkKeySize(key))
+        return ESP_FAIL;
 
-esp_err_t FlashStorage::set_string(const std::string &key, const std::string &value)
-{
-    esp_err_t ret = nvs_set_str(m_handle, key.c_str(), value.c_str());
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
     if (ret != ESP_OK)
         return ret;
 
-    return nvs_commit(m_handle);
+    ret = nvs_set_u32(handle, key.c_str(), value);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    ret = nvs_commit(handle);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
 }
 
-esp_err_t FlashStorage::get_string(const std::string &key, std::string &value)
+esp_err_t FlashStorage::get_u32(const std::string &ns, const std::string &key, uint32_t &value)
 {
+    if (checkKeySize(key))
+        return ESP_FAIL;
+
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
+    if (ret != ESP_OK)
+        return ret;
+
+    // TODO: change nvs_get_u32
+    ret = nvs_get_u32(handle, key.c_str(), &value);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t FlashStorage::set_i64(const std::string &ns, const std::string &key, const int64_t value)
+{
+    if (checkKeySize(key))
+        return ESP_FAIL;
+
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
+    if (ret != ESP_OK)
+        return ret;
+
+    ret = nvs_set_i64(handle, key.c_str(), value);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    ret = nvs_commit(handle);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t FlashStorage::get_i64(const std::string &ns, const std::string &key, int64_t &value)
+{
+    if (checkKeySize(key))
+        return ESP_FAIL;
+
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
+    if (ret != ESP_OK)
+        return ret;
+
+    // TODO: change nvs_get_u32
+    ret = nvs_get_i64(handle, key.c_str(), &value);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t FlashStorage::set_u64(const std::string &ns, const std::string &key, const uint64_t value)
+{
+    if (checkKeySize(key))
+        return ESP_FAIL;
+
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
+    if (ret != ESP_OK)
+        return ret;
+
+    ret = nvs_set_u64(handle, key.c_str(), value);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    ret = nvs_commit(handle);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t FlashStorage::get_u64(const std::string &ns, const std::string &key, uint64_t &value)
+{
+    if (checkKeySize(key))
+        return ESP_FAIL;
+
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
+    if (ret != ESP_OK)
+        return ret;
+
+    // TODO: change nvs_get_u32
+    ret = nvs_get_u64(handle, key.c_str(), &value);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t FlashStorage::set_string(const std::string &ns, const std::string &key, const std::string &value)
+{
+    if (checkKeySize(key))
+        return ESP_FAIL;
+
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
+    if (ret != ESP_OK)
+        return ret;
+
+    ret = nvs_set_str(handle, key.c_str(), value.c_str());
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    ret = nvs_commit(handle);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
+}
+
+esp_err_t FlashStorage::get_string(const std::string &ns, const std::string &key, std::string &value)
+{
+    if (checkKeySize(key))
+        return ESP_FAIL;
+
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
+    if (ret != ESP_OK)
+        return ret;
+
     // get string size
     size_t strSize = 0;
-    esp_err_t ret = nvs_get_str(m_handle, key.c_str(), NULL, &strSize);
+    ret = nvs_get_str(handle, key.c_str(), NULL, &strSize);
     if (ret != ESP_OK)
+    {
+        nvs_close(handle);
         return ret;
+    }
 
     // read string data
     char *buffer = new char[strSize];
-    ret = nvs_get_str(m_handle, key.c_str(), buffer, &strSize);
+    ret = nvs_get_str(handle, key.c_str(), buffer, &strSize);
     if (ret != ESP_OK)
     {
         delete[] buffer;
+        nvs_close(handle);
         return ret;
     }
 
     value.assign(buffer);
-
-    delete[] buffer;
-    return ret;
+    return ESP_OK;
 }
 
-esp_err_t FlashStorage::set_binary(const std::string &key, const std::vector<uint8_t> &value)
+esp_err_t FlashStorage::set_binary(const std::string &ns, const std::string &key, const std::vector<uint8_t> &value)
 {
-    esp_err_t ret = nvs_set_blob(m_handle, key.c_str(), (const void *)value.data(), value.size());
+    if (checkKeySize(key))
+        return ESP_FAIL;
+
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
     if (ret != ESP_OK)
         return ret;
 
-    return nvs_commit(m_handle);
+    ret = nvs_set_blob(handle, key.c_str(), (const void *)value.data(), value.size());
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    ret = nvs_commit(handle);
+    if (ret != ESP_OK)
+    {
+        nvs_close(handle);
+        return ret;
+    }
+
+    return ESP_OK;
 }
 
-esp_err_t FlashStorage::get_binary(const std::string &key, std::vector<uint8_t> &value)
+esp_err_t FlashStorage::get_binary(const std::string &ns, const std::string &key, std::vector<uint8_t> &value)
 {
-    // get binary size
+    if (checkKeySize(key))
+        return ESP_FAIL;
+
+    if (checkNamespaceSize(ns))
+        return ESP_FAIL;
+
+    nvs_handle_t handle;
+    esp_err_t ret = nvs_open(ns.c_str(), NVS_READWRITE, &handle);
+    if (ret != ESP_OK)
+        return ret;
+
+    // get string size
     size_t binSize = 0;
-    esp_err_t ret = nvs_get_blob(m_handle, key.c_str(), NULL, &binSize);
+    ret = nvs_get_blob(handle, key.c_str(), NULL, &binSize);
     if (ret != ESP_OK)
+    {
+        nvs_close(handle);
         return ret;
+    }
 
-    // read binary data
+    // read string data
     uint8_t *buffer = new uint8_t[binSize];
-    ret = nvs_get_blob(m_handle, key.c_str(), buffer, &binSize);
+    ret = nvs_get_blob(handle, key.c_str(), buffer, &binSize);
     if (ret != ESP_OK)
     {
         delete[] buffer;
+        nvs_close(handle);
         return ret;
     }
-    value = std::move(std::vector<uint8_t>(buffer, buffer + binSize));
 
-    delete[] buffer;
-    return ret;
+    value = std::move(std::vector<uint8_t>(buffer, buffer + binSize));
+    return ESP_OK;
 }
