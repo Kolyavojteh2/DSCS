@@ -10,8 +10,6 @@ private:
     FlashStorage();
     FlashStorage(const FlashStorage &) = delete;
     FlashStorage &operator=(const FlashStorage &) = delete;
-
-    void init();
 };
 
 #endif // FLASH_STORAGE_H

@@ -12,11 +12,7 @@ FlashStorage &FlashStorage::getInstance()
 
 FlashStorage::FlashStorage()
 {
-    init();
-}
-
-void FlashStorage::init()
-{
+    // Init flash storage
     esp_err_t ret = nvs_flash_init();     // Flash storage initialization
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES) // Error recovery attempt
     {
