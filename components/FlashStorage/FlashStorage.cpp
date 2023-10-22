@@ -68,6 +68,7 @@ esp_err_t FlashStorage::set_i32(const std::string &ns, const std::string &key, c
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -91,6 +92,7 @@ esp_err_t FlashStorage::get_i32(const std::string &ns, const std::string &key, i
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -121,6 +123,7 @@ esp_err_t FlashStorage::set_u32(const std::string &ns, const std::string &key, c
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -145,6 +148,7 @@ esp_err_t FlashStorage::get_u32(const std::string &ns, const std::string &key, u
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -175,6 +179,7 @@ esp_err_t FlashStorage::set_i64(const std::string &ns, const std::string &key, c
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -199,6 +204,7 @@ esp_err_t FlashStorage::get_i64(const std::string &ns, const std::string &key, i
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -229,6 +235,7 @@ esp_err_t FlashStorage::set_u64(const std::string &ns, const std::string &key, c
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -253,6 +260,7 @@ esp_err_t FlashStorage::get_u64(const std::string &ns, const std::string &key, u
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -283,6 +291,7 @@ esp_err_t FlashStorage::set_string(const std::string &ns, const std::string &key
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -308,6 +317,12 @@ esp_err_t FlashStorage::get_string(const std::string &ns, const std::string &key
         return ret;
     }
 
+    if (strSize == 0)
+    {
+        nvs_close(handle);
+        return ESP_FAIL;
+    }
+
     // read string data
     char *buffer = new char[strSize];
     ret = nvs_get_str(handle, key.c_str(), buffer, &strSize);
@@ -319,6 +334,8 @@ esp_err_t FlashStorage::get_string(const std::string &ns, const std::string &key
     }
 
     value.assign(buffer);
+
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -349,6 +366,7 @@ esp_err_t FlashStorage::set_binary(const std::string &ns, const std::string &key
         return ret;
     }
 
+    nvs_close(handle);
     return ESP_OK;
 }
 
@@ -385,5 +403,7 @@ esp_err_t FlashStorage::get_binary(const std::string &ns, const std::string &key
     }
 
     value = std::move(std::vector<uint8_t>(buffer, buffer + binSize));
+
+    nvs_close(handle);
     return ESP_OK;
 }
