@@ -17,6 +17,16 @@ namespace DSSProtocolHandler
 
     void bootstrapSend();
     void bootstrapRootHandler(const std::vector<uint8_t> &input);
+
+    void chronoUpdateRequestSend();
+
+    void chronoUpdateResponseHandler(const std::vector<uint8_t> &input);
+    void chronoUpdateRequestHandler(const std::vector<uint8_t> &input);
+
+    void getConfigRequestHandler(const std::vector<uint8_t> &input);
+
+    void setConfigRequestHandler(const std::vector<uint8_t> &input);
+
 }
 
 #endif // DSS_PROTOCOL_HANDLER_H
