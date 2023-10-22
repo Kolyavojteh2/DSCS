@@ -35,7 +35,6 @@ void DSSProtocolHandler::aliveNodeRequestHandler(const std::vector<uint8_t> &inp
     {
         // Get a request packet
         DSS_Protocol_t request(input);
-        AliveNodeRequestPacket_t *packetRequest = dynamic_cast<AliveNodeRequestPacket_t *>(request.packet);
 
         // Prepare DSS protocol packet
         // source MAC
