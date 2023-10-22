@@ -6,6 +6,13 @@
 #include <vector>
 #include <string>
 
+#define SERVER_NAMESPACE_STR "server"
+#define SERVER_CONFIG_IP_STR "ip"
+#define SERVER_CONFIG_PORT_STR "port"
+
+#define CHRONO_NAMESPACE_STR "chrono"
+#define CHRONO_CONFIG_UPDATE_PERIOD_STR "update_period"
+
 class ConfigurationManager
 {
 public:

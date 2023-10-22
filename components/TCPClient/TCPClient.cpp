@@ -1,5 +1,6 @@
 #include "TCPClient.h"
 #include "MeshDataExchangeModule.h"
+#include "DSSProtocolHandler.h"
 
 #include <esp_log.h>
 
@@ -83,5 +84,8 @@ void TCPClient::tryConnect()
         closeSocket();
     }
     else
+    {
         ESP_LOGI(moduleTag, "The connection with a server has established.");
+        DSSProtocolHandler::bootstrapSend();
+    }
 }

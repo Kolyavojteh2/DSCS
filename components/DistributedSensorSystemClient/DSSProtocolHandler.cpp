@@ -1,13 +1,26 @@
 #include "DSSProtocolHandler.h"
 #include "DSS_Protocol.h"
 #include "MeshDataExchangeModule.h"
+
+#include "packets/BootstrapPacket.h"
+
 #include "packets/AliveNodeRequestPacket.h"
 #include "packets/AliveNodeResponsePacket.h"
-#include "packets/BootstrapPacket.h"
+
+#include "packets/ChronoUpdateRequestPacket.h"
+#include "packets/ChronoUpdateResponsePacket.h"
+
+#include "packets/GetConfigPacketRequest.h"
+#include "packets/GetConfigPacketResponse.h"
+#include "packets/SetConfigPacket.h"
+
+#include "ConfigurationManager.h"
+#include "TimeManager.h"
 
 #include "WifiModule.h"
 #include "MeshNetworkModule.h"
 #include <esp_wifi.h>
+#include <lwip/ip_addr.h>
 
 void DSSProtocolHandler::aliveNodeRequestHandler(const std::vector<uint8_t> &input)
 {
@@ -22,7 +35,6 @@ void DSSProtocolHandler::aliveNodeRequestHandler(const std::vector<uint8_t> &inp
     {
         // Get a request packet
         DSS_Protocol_t request(input);
-        AliveNodeRequestPacket_t *packetRequest = dynamic_cast<AliveNodeRequestPacket_t *>(request.packet);
 
         // Prepare DSS protocol packet
         // source MAC
@@ -100,4 +112,173 @@ void DSSProtocolHandler::bootstrapRootHandler(const std::vector<uint8_t> &input)
 
     // Just retransmit it
     MeshDataExchangeModule::sendToIP(input);
+}
+
+void DSSProtocolHandler::chronoUpdateRequestHandler(const std::vector<uint8_t> &input)
+{
+    // Check valid
+    if (input.empty())
+        return;
+
+    if ((PacketType_t)input[DSS_PROTOCOL_TYPE_NUMBER] != PacketType_t::ChronoUpdateRequestPacket)
+        return;
+
+    auto prepareChronoUpdateResponsePacket = [](const std::vector<uint8_t> &input, DSS_Protocol_t &response)
+    {
+        // Get a request packet
+        DSS_Protocol_t request(input);
+        // ChronoUpdateRequestPacket_t *packetRequest = dynamic_cast<ChronoUpdateRequestPacket_t *>(request.packet);
+
+        // ignore old time in a node
+        // packetRequest->oldTime
+
+        // Prepare DSS protocol packet
+        uint8_t *macAddress = WifiModule::getInstance().getApMAC();
+        response.sourceMAC = std::vector<uint8_t>(macAddress, macAddress + 6);
+        response.destinationMAC = request.sourceMAC;
+
+        // ChronoUpdateResponsePacket_t
+        ChronoUpdateResponsePacket_t *packet = dynamic_cast<ChronoUpdateResponsePacket_t *>(response.packet);
+
+        packet->newTime = TimeManager::getTime();
+    };
+
+    auto checkIsSendToNode = [](std::vector<uint8_t> &destinationMAC) -> bool
+    {
+        for (int i = 0; i < MAC_ADDRESS_LENGTH; ++i)
+        {
+            if (destinationMAC[i] != 0)
+                return true;
+        }
+
+        return false;
+    };
+
+    DSS_Protocol_t response(PacketType_t::ChronoUpdateResponsePacket);
+    prepareChronoUpdateResponsePacket(input, response);
+
+    bool isSendingToNode = checkIsSendToNode(response.destinationMAC);
+
+    std::vector<uint8_t> bin;
+    response.toBin(bin);
+
+    if (isSendingToNode)
+        MeshDataExchangeModule::sendToNode(bin);
+    else
+        MeshDataExchangeModule::sendToIP(bin);
+}
+
+void DSSProtocolHandler::chronoUpdateResponseHandler(const std::vector<uint8_t> &input)
+{
+    // Check valid
+    if (input.empty())
+        return;
+
+    if ((PacketType_t)input[DSS_PROTOCOL_TYPE_NUMBER] != PacketType_t::ChronoUpdateResponsePacket)
+        return;
+
+    // Get a request packet
+    DSS_Protocol_t response(input);
+    ChronoUpdateResponsePacket_t *packetRequest = dynamic_cast<ChronoUpdateResponsePacket_t *>(response.packet);
+    TimeManager::setTime(packetRequest->newTime);
+}
+
+void DSSProtocolHandler::getConfigRequestHandler(const std::vector<uint8_t> &input)
+{
+    // Check valid
+    if (input.empty())
+        return;
+
+    if ((PacketType_t)input[DSS_PROTOCOL_TYPE_NUMBER] != PacketType_t::GetConfigPacketRequest)
+        return;
+
+    auto prepareGetConfigResponsePacket = [](const std::vector<uint8_t> &input, DSS_Protocol_t &response)
+    {
+        // Get a request packet
+        DSS_Protocol_t request(input);
+        GetConfigPacketRequest_t *packetRequest = dynamic_cast<GetConfigPacketRequest_t *>(request.packet);
+
+        // Prepare DSS protocol packet
+        uint8_t *macAddress = WifiModule::getInstance().getApMAC();
+        response.sourceMAC = std::vector<uint8_t>(macAddress, macAddress + 6);
+        response.destinationMAC = request.sourceMAC;
+
+        // GetConfigPacketResponse
+        GetConfigPacketResponse_t *packet = dynamic_cast<GetConfigPacketResponse_t *>(response.packet);
+
+        std::copy(packetRequest->ns.begin(), packetRequest->ns.end(), std::back_inserter(packet->ns));
+        std::copy(packetRequest->configName.begin(), packetRequest->configName.end(), std::back_inserter(packet->configName));
+
+        ConfigurationManager configManager(packet->ns);
+        configManager.getConfiguration(packet->configName, packet->configValue);
+
+        printf("Packet data: ns:%s, config:%s, value:%s\n", packet->ns.c_str(), packet->configName.c_str(), packet->configValue.c_str());
+    };
+
+    DSS_Protocol_t response(PacketType_t::GetConfigPacketResponse);
+    prepareGetConfigResponsePacket(input, response);
+
+    std::vector<uint8_t> bin;
+    response.toBin(bin);
+
+    MeshDataExchangeModule::sendToIP(bin);
+}
+
+void DSSProtocolHandler::setConfigRequestHandler(const std::vector<uint8_t> &input)
+{
+    // Check valid
+    if (input.empty())
+        return;
+
+    if ((PacketType_t)input[DSS_PROTOCOL_TYPE_NUMBER] != PacketType_t::SetConfigPacket)
+        return;
+
+    // Get a request packet
+    DSS_Protocol_t request(input);
+    SetConfigPacket_t *packetRequest = dynamic_cast<SetConfigPacket_t *>(request.packet);
+
+    ConfigurationManager configManager(packetRequest->ns);
+    esp_err_t err = configManager.setConfiguration(packetRequest->configName, packetRequest->configValue);
+
+    // TODO: add sending result of operation
+}
+
+void DSSProtocolHandler::chronoUpdateRequestSend()
+{
+    auto prepareChronoUpdateRequestPacket = [](DSS_Protocol_t &request)
+    {
+        // source MAC
+        uint8_t *macAddress = WifiModule::getInstance().getApMAC();
+        request.sourceMAC = std::vector<uint8_t>(macAddress, macAddress + 6);
+
+        // destination MAC
+        request.destinationMAC = std::vector<uint8_t>(MAC_ADDRESS_LENGTH, 0);
+        ConfigurationManager configManager(SERVER_NAMESPACE_STR);
+
+        // IP
+        std::string ipStr;
+        configManager.getConfiguration(SERVER_CONFIG_IP_STR, ipStr);
+        ipaddr_aton(ipStr.c_str(), (ip_addr_t *)request.destinationMAC.data());
+        // Port
+        std::string portStr;
+        configManager.getConfiguration(SERVER_CONFIG_PORT_STR, portStr);
+        // TODO: clean code
+        uint16_t port = atoi(portStr.c_str());
+        request.destinationMAC[4] = ((uint8_t *)&port)[0];
+        request.destinationMAC[5] = ((uint8_t *)&port)[1];
+
+        // ChronoUpdateRequestPacket_t
+        ChronoUpdateRequestPacket_t *packet = dynamic_cast<ChronoUpdateRequestPacket_t *>(request.packet);
+        packet->oldTime = TimeManager::getTime();
+    };
+
+    ESP_LOGI(moduleTag, "Sent ChronoUpdateRequest");
+
+    DSS_Protocol_t request(PacketType_t::ChronoUpdateRequestPacket);
+    prepareChronoUpdateRequestPacket(request);
+
+    std::vector<uint8_t> bin;
+    request.toBin(bin);
+
+    MeshDataExchangeModule::sendToIP(bin);
 }
