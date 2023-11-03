@@ -10,4 +10,6 @@ idf_component_register(SRCS
     "MeshNetworkModule"
     "WifiModule"
     "DistributedSensorSystemClient"
+    "TimeManager"
+    "SensorManager"
 )
