@@ -14,8 +14,18 @@
 #include "packets/GetConfigPacketResponse.h"
 #include "packets/SetConfigPacket.h"
 
+#include "packets/GetSensorsPacketRequest.h"
+#include "packets/GetSensorsPacketResponse.h"
+#include "packets/GetSensorDataPacketRequest.h"
+#include "packets/GetSensorDataPacketResponse.h"
+#include "packets/GetSensorHeaderPacketRequest.h"
+#include "packets/GetSensorHeaderPacketResponse.h"
+#include "packets/ClearSensorDataRequest.h"
+#include "packets/SetSensorReadingModeRequest.h"
+
 #include "ConfigurationManager.h"
 #include "TimeManager.h"
+#include "SensorManager.h"
 
 #include "WifiModule.h"
 #include "MeshNetworkModule.h"
@@ -281,4 +291,158 @@ void DSSProtocolHandler::chronoUpdateRequestSend()
     request.toBin(bin);
 
     MeshDataExchangeModule::sendToIP(bin);
+}
+
+void DSSProtocolHandler::getSensorsPacketRequestHandler(const std::vector<uint8_t> &input)
+{
+    // Check valid
+    if (input.empty())
+        return;
+
+    if ((PacketType_t)input[DSS_PROTOCOL_TYPE_NUMBER] != PacketType_t::GetSensorsPacketRequest)
+        return;
+
+    auto prepareGetSensorsPacketResponse = [](const std::vector<uint8_t> &input, DSS_Protocol_t &response)
+    {
+        // Get a request packet
+        DSS_Protocol_t request(input);
+        GetSensorsPacketRequest_t *packetRequest = dynamic_cast<GetSensorsPacketRequest_t *>(request.packet);
+
+        // Prepare DSS protocol packet
+        uint8_t *macAddress = WifiModule::getInstance().getApMAC();
+        response.sourceMAC = std::vector<uint8_t>(macAddress, macAddress + 6);
+        response.destinationMAC = request.sourceMAC;
+
+        // GetSensorsPacketResponse
+        GetSensorsPacketResponse_t *packet = dynamic_cast<GetSensorsPacketResponse_t *>(response.packet);
+
+        std::list<std::string> list;
+        SensorManager::getSensors(list);
+        for (auto elem : list)
+            packet->sensors.push_back(elem);
+    };
+
+    DSS_Protocol_t response(PacketType_t::GetSensorsPacketResponse);
+    prepareGetSensorsPacketResponse(input, response);
+
+    std::vector<uint8_t> bin;
+    response.toBin(bin);
+
+    MeshDataExchangeModule::sendToIP(bin);
+}
+
+void DSSProtocolHandler::getSensorHeaderPacketRequestHandler(const std::vector<uint8_t> &input)
+{
+    // Check valid
+    if (input.empty())
+        return;
+
+    if ((PacketType_t)input[DSS_PROTOCOL_TYPE_NUMBER] != PacketType_t::GetSensorHeaderPacketRequest)
+        return;
+
+    auto prepareGetSensorHeaderPacketResponse = [](const std::vector<uint8_t> &input, DSS_Protocol_t &response)
+    {
+        // Get a request packet
+        DSS_Protocol_t request(input);
+        GetSensorHeaderPacketRequest_t *packetRequest = dynamic_cast<GetSensorHeaderPacketRequest_t *>(request.packet);
+
+        // Prepare DSS protocol packet
+        uint8_t *macAddress = WifiModule::getInstance().getApMAC();
+        response.sourceMAC = std::vector<uint8_t>(macAddress, macAddress + 6);
+        response.destinationMAC = request.sourceMAC;
+
+        // GetSensorHeaderPacketResponse_t
+        GetSensorHeaderPacketResponse_t *packet = dynamic_cast<GetSensorHeaderPacketResponse_t *>(response.packet);
+
+        packet->sensorName = packetRequest->sensorName;
+
+        std::map<std::string, uint8_t> header;
+        SensorManager::getSensorHeader(packet->sensorName, header);
+        for (auto &it : header)
+            packet->sensorDataNames.push_back(it.first);
+    };
+
+    DSS_Protocol_t response(PacketType_t::GetSensorHeaderPacketResponse);
+    prepareGetSensorHeaderPacketResponse(input, response);
+
+    std::vector<uint8_t> bin;
+    response.toBin(bin);
+
+    MeshDataExchangeModule::sendToIP(bin);
+}
+
+void DSSProtocolHandler::getSensorDataPacketRequestHandler(const std::vector<uint8_t> &input)
+{
+    // Check valid
+    if (input.empty())
+        return;
+
+    if ((PacketType_t)input[DSS_PROTOCOL_TYPE_NUMBER] != PacketType_t::GetSensorDataPacketRequest)
+        return;
+
+    auto prepareGetSensorDataPacketResponse = [](const std::vector<uint8_t> &input, DSS_Protocol_t &response)
+    {
+        // Get a request packet
+        DSS_Protocol_t request(input);
+        GetSensorDataPacketRequest_t *packetRequest = dynamic_cast<GetSensorDataPacketRequest_t *>(request.packet);
+
+        // Prepare DSS protocol packet
+        uint8_t *macAddress = WifiModule::getInstance().getApMAC();
+        response.sourceMAC = std::vector<uint8_t>(macAddress, macAddress + 6);
+        response.destinationMAC = request.sourceMAC;
+
+        // GetSensorDataPacketResponse_t
+        GetSensorDataPacketResponse_t *packet = dynamic_cast<GetSensorDataPacketResponse_t *>(response.packet);
+
+        packet->sensorName = packetRequest->sensorName;
+        packet->dataName = packetRequest->dataName;
+        packet->sizeTime = sizeof(time_t);
+
+        std::map<std::string, uint8_t> header;
+        SensorManager::getSensorHeader(packet->sensorName, header);
+        packet->sizeTime = header[packet->dataName];
+
+        SensorManager::getSensorData(packet->sensorName, packet->dataName, packet->dataTime, packet->dataValue);
+    };
+
+    DSS_Protocol_t response(PacketType_t::GetSensorDataPacketResponse);
+    prepareGetSensorDataPacketResponse(input, response);
+
+    std::vector<uint8_t> bin;
+    response.toBin(bin);
+
+    MeshDataExchangeModule::sendToIP(bin);
+}
+
+void DSSProtocolHandler::clearSensorDataRequestHandler(const std::vector<uint8_t> &input)
+{
+    // Check valid
+    if (input.empty())
+        return;
+
+    if ((PacketType_t)input[DSS_PROTOCOL_TYPE_NUMBER] != PacketType_t::ClearSensorDataRequest)
+        return;
+
+    // Get a request packet
+    DSS_Protocol_t request(input);
+    ClearSensorDataRequest_t *packetRequest = dynamic_cast<ClearSensorDataRequest_t *>(request.packet);
+
+    auto sensor = SensorManager::getSensor(packetRequest->sensorName);
+    sensor->clearData(packetRequest->dataName, packetRequest->timeFrom, packetRequest->timeTo);
+}
+
+void DSSProtocolHandler::setSensorReadingModeRequestHandler(const std::vector<uint8_t> &input)
+{
+    // Check valid
+    if (input.empty())
+        return;
+
+    if ((PacketType_t)input[DSS_PROTOCOL_TYPE_NUMBER] != PacketType_t::SetSensorReadingModeRequest)
+        return;
+
+    // Get a request packet
+    DSS_Protocol_t request(input);
+    SetSensorReadingModeRequest_t *packetRequest = dynamic_cast<SetSensorReadingModeRequest_t *>(request.packet);
+
+    SensorManager::setReadingPeriod(packetRequest->period);
 }

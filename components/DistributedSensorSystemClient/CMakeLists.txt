@@ -14,6 +14,7 @@ idf_component_register(
     "MeshNetworkModule"
     "ConfigurationManager"
     "TimeManager"
+    "SensorManager"
 
     PRIV_REQUIRES
     "esp_wifi"
