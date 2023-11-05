@@ -14,4 +14,5 @@ idf_component_register(
     "I2C_Peripheral"
     "TimeManager"
     "esp_system"
+    "freertos"
 )

@@ -3,6 +3,9 @@
 #include <esp_err.h>
 #include <esp_log.h>
 
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
 #define MAX_DATA_PACKET_SIZE 1000
 #define READING_TASK_NAME "reading_task"
 
@@ -12,11 +15,8 @@ SensorManager::SensorManager()
     ESP_LOGI(moduleTag, "initialized");
 }
 
-void SensorManager::readingTask(void *arg)
+void SensorManager::readingTask(void * /*arg*/)
 {
-    // Unused
-    (void *)arg;
-
     while (true)
     {
         vTaskDelay(pdMS_TO_TICKS(SensorManager::getInstance().m_readingPeriod * 1000));
@@ -124,4 +124,14 @@ void SensorManager::getSensorData(const std::string &sensorName, const std::stri
 
     unsigned int dataCount = MAX_DATA_PACKET_SIZE / singleDataSize;
     manager.m_sensors[sensorName]->getData(dataName, dataTime, data, dataCount, from, to);
+}
+
+void SensorManager::getReadingPeriod(time_t &period)
+{
+    period = SensorManager::getInstance().m_readingPeriod;
+}
+
+void SensorManager::setReadingPeriod(const time_t &period)
+{
+    SensorManager::getInstance().m_readingPeriod = period;
 }

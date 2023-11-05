@@ -174,3 +174,24 @@ void HDC1080::getDataTemperature(std::vector<time_t> &dataTime, std::vector<uint
         count--;
     }
 }
+
+void HDC1080::clearData(const std::string &dataName, const time_t from, const time_t to)
+{
+    std::map<time_t, uint16_t> *ptrData = nullptr;
+
+    if (dataName == HUMIDITY_STR)
+        ptrData = &m_humidity;
+    else if (dataName == TEMPERATURE_STR)
+        ptrData = &m_temperature;
+
+    if (ptrData == nullptr)
+        return;
+
+    for (auto it = ptrData->begin(); it != ptrData->end();)
+    {
+        if (it->first >= from && it->first <= to)
+            it = ptrData->erase(it);
+        else
+            ++it;
+    }
+}

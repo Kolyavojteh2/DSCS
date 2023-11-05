@@ -80,6 +80,8 @@ public:
                  const time_t from = 0, const time_t to = -1) override;
     void getSingleDataSize(const std::string &dataName, uint8_t &size) override;
 
+    void clearData(const std::string &dataName, const time_t from = 0, const time_t to = -1);
+
 private:
     void read_ui8(const uint8_t reg, uint8_t &out);
     void read_ui32(const uint8_t reg, uint32_t &out);

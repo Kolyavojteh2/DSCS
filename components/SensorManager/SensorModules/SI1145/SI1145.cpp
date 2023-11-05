@@ -283,3 +283,28 @@ void SI1145::getProxData(std::vector<time_t> &dataTime, std::vector<uint8_t> &da
         count--;
     }
 }
+
+void SI1145::clearData(const std::string &dataName, const time_t from, const time_t to)
+{
+    std::map<time_t, uint16_t> *ptrData = nullptr;
+
+    if (dataName == UV_STR)
+        ptrData = &m_UV;
+    else if (dataName == VISIBLE_STR)
+        ptrData = &m_Visible;
+    else if (dataName == IR_STR)
+        ptrData = &m_IR;
+    else if (dataName == PROX_STR)
+        ptrData = &m_Prox;
+
+    if (ptrData == nullptr)
+        return;
+
+    for (auto it = ptrData->begin(); it != ptrData->end();)
+    {
+        if (it->first >= from && it->first <= to)
+            it = ptrData->erase(it);
+        else
+            ++it;
+    }
+}

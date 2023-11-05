@@ -27,6 +27,8 @@ public:
                          const time_t from = 0, const time_t to = -1) = 0;
     virtual void getSingleDataSize(const std::string &dataName, uint8_t &size) = 0;
 
+    virtual void clearData(const std::string &dataName, const time_t from = 0, const time_t to = -1);
+
 protected:
     std::string m_name;
 };

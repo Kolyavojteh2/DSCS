@@ -25,3 +25,8 @@ void BaseSensorModule::powerOff()
 {
     ESP_LOGW(this->getName().c_str(), "powerOff() not implemented.");
 }
+
+void BaseSensorModule::clearData(const std::string & /*dataName*/, const time_t /*from*/, const time_t /*to*/)
+{
+    ESP_LOGW(this->getName().c_str(), "clearData() not implemented.");
+}
