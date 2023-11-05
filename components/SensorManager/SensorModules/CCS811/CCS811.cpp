@@ -217,3 +217,24 @@ void CCS811::getDataTVOC(std::vector<time_t> &dataTime, std::vector<uint8_t> &da
         count--;
     }
 }
+
+void CCS811::clearData(const std::string &dataName, const time_t from, const time_t to)
+{
+    std::map<time_t, uint16_t> *ptrData = nullptr;
+
+    if (dataName == ECO2_STR)
+        ptrData = &m_eCO2;
+    else if (dataName == TVOC_STR)
+        ptrData = &m_TVOC;
+
+    if (ptrData == nullptr)
+        return;
+
+    for (auto it = ptrData->begin(); it != ptrData->end();)
+    {
+        if (it->first >= from && it->first <= to)
+            it = ptrData->erase(it);
+        else
+            ++it;
+    }
+}

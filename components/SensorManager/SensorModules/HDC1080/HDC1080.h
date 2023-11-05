@@ -36,6 +36,8 @@ public:
                  const time_t from = 0, const time_t to = -1) override;
     void getSingleDataSize(const std::string &dataName, uint8_t &size) override;
 
+    void clearData(const std::string &dataName, const time_t from = 0, const time_t to = -1);
+
 private:
     void read_ui16(const uint8_t reg, uint16_t &out);
     void write_ui16(const uint8_t reg, const uint16_t value);
