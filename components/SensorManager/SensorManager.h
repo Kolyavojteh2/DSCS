@@ -30,6 +30,9 @@ public:
                               std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
                               const time_t from = 0, const time_t to = -1);
 
+    static void getReadingPeriod(time_t &period);
+    static void setReadingPeriod(const time_t &period);
+
 private:
     static constexpr const char *moduleTag = "SensorManager";
 
