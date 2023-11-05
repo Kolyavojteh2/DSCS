@@ -4,10 +4,24 @@
 #include <esp_log.h>
 
 #define MAX_DATA_PACKET_SIZE 1000
+#define READING_TASK_NAME "reading_task"
 
 SensorManager::SensorManager()
 {
+    xTaskCreate(SensorManager::readingTask, "reading_task", 4096, NULL, 5, NULL);
     ESP_LOGI(moduleTag, "initialized");
+}
+
+void SensorManager::readingTask(void *arg)
+{
+    // Unused
+    (void *)arg;
+
+    while (true)
+    {
+        vTaskDelay(pdMS_TO_TICKS(SensorManager::getInstance().m_readingPeriod * 1000));
+        SensorManager::readDataAll();
+    }
 }
 
 SensorManager &SensorManager::getInstance(void)

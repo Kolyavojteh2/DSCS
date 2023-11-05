@@ -8,6 +8,8 @@
 #include <list>
 #include <climits>
 
+#define DEFAULT_READING_PERIOD 1
+
 class SensorManager
 {
 public:
@@ -35,7 +37,10 @@ private:
     SensorManager(const SensorManager &) = delete;
     SensorManager &operator=(const SensorManager &) = delete;
 
+    static void readingTask(void *arg);
+
     std::map<std::string, BaseSensorModule *> m_sensors;
+    time_t m_readingPeriod = DEFAULT_READING_PERIOD;
 };
 
 #endif // SENSOR_MANAGER_H
