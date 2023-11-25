@@ -16,7 +16,7 @@
 #define RECEIVE_IP_TASK_NAME "receiveIPTask"
 #define CLEANER_TASK_NAME "cleanerTask"
 
-#define RECEIVE_TASK_STACK_SIZE (4096)
+#define RECEIVE_TASK_STACK_SIZE (8192)
 #define RECEIVE_TASK_PRIORITY (1)
 #define RECEIVE_TASK_CORE_NUMBER (1)
 
@@ -74,7 +74,7 @@ private:
     static void receiveMeshTask(void *);
     static void receiveIPTask(void *);
 
-    static void analyzeAndProcessData(const std::vector<uint8_t> bin, const int flag);
+    static void analyzeAndProcessData(std::vector<uint8_t> bin, const int flag);
 
     static void handleReceivedData(const std::vector<uint8_t> bin, const int flag);
     static void retransmitReceivedData(const std::vector<uint8_t> bin, const int flag);

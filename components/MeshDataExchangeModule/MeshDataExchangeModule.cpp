@@ -11,6 +11,9 @@
 #include "lwip/sys.h"
 #include "lwip/netdb.h"
 
+#include <iomanip>
+#include <iostream>
+
 #include <vector>
 
 #ifndef RETRY_SEND_COUNT
@@ -281,6 +284,8 @@ void MeshDataExchangeModule::receiveIPTask(void * /*unused*/)
 
         // TODO: check if it is needing
         ESP_LOGI(moduleTag, "Received data from IP: %s", recvBuffer);
+        for (int i = 0; i < gotBytes; ++i)
+            std::cout << std::setw(2) << std::setfill('0') << std::hex << (unsigned int)recvBuffer[i] << " ";
 
         std::vector<uint8_t> bin(recvBuffer, recvBuffer + gotBytes);
         int recvFlag = MeshPacketFlag_t::FromIP;
@@ -303,13 +308,6 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
 
     while (1)
     {
-        // Check the receiving state
-        if (MeshDataExchangeModule::getInstance().m_receivingState == false)
-        {
-            vTaskSuspend(NULL);
-            continue;
-        }
-
         dataDes.size = MESH_MTU;
         // TODO: check if needing it
         recvOpt.type = 0;
@@ -324,26 +322,37 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
 
         // TODO: check if it is needing
         ESP_LOGI(moduleTag, "Received data from MESH: %s", dataDes.data);
+        for (int i = 0; i < dataDes.size; ++i)
+            std::cout << std::setw(2) << std::setfill('0') << std::hex << (unsigned int)recvBuffer[i] << " ";
 
         std::vector<uint8_t> bin(dataDes.data, dataDes.data + dataDes.size);
         analyzeAndProcessData(bin, recvFlag);
     }
 }
 
-void MeshDataExchangeModule::analyzeAndProcessData(const std::vector<uint8_t> bin, const int flag)
+void MeshDataExchangeModule::analyzeAndProcessData(std::vector<uint8_t> bin, const int flag)
 {
-    DSS_Protocol_t header = DSS_Protocol_t::makeHeaderDataOnly(bin);
-
-    if (isNeedToHandle(header, flag))
+    while (!bin.empty())
     {
-        ESP_LOGI(moduleTag, "Handle this packet.");
-        handleReceivedData(bin, flag);
-    }
+        // DSS_Protocol_t header = DSS_Protocol_t::makeHeaderDataOnly(bin);
+        DSS_Protocol_t fullPacket(bin);
 
-    if (isNeedToRetransmit(header, flag))
-    {
-        ESP_LOGI(moduleTag, "Retransmit this packet.");
-        retransmitReceivedData(bin, flag);
+        std::vector<uint8_t> binSinglePacket;
+        fullPacket.toBin(binSinglePacket);
+
+        if (isNeedToHandle(fullPacket, flag))
+        {
+            ESP_LOGI(moduleTag, "Handle this packet.");
+            handleReceivedData(binSinglePacket, flag);
+        }
+
+        if (isNeedToRetransmit(fullPacket, flag))
+        {
+            ESP_LOGI(moduleTag, "Retransmit this packet.");
+            retransmitReceivedData(binSinglePacket, flag);
+        }
+
+        bin.erase(bin.begin(), bin.begin() + fullPacket.getPacketSize());
     }
 }
 
@@ -403,7 +412,15 @@ bool MeshDataExchangeModule::isDestinationCurrentDevice(const DSS_Protocol_t &da
 bool MeshDataExchangeModule::isBroadcast(const DSS_Protocol_t &header)
 {
     // TODO: add check broadcast
-    return false;
+    static std::vector<uint8_t> broadcastMAC = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+    for (int i = 0; i < header.destinationMAC.size(); ++i)
+    {
+        if (header.destinationMAC[i] != broadcastMAC[i])
+            return false;
+    }
+
+    return true;
 }
 
 bool MeshDataExchangeModule::isNeedToHandle(const DSS_Protocol_t &header, const int flag)
@@ -414,8 +431,7 @@ bool MeshDataExchangeModule::isNeedToHandle(const DSS_Protocol_t &header, const 
     if (flag == MeshPacketFlag_t::ToRoot && esp_mesh_is_root())
         return true;
 
-    if ((flag == MeshPacketFlag_t::ToNode || flag == MeshPacketFlag_t::FromIP) &&
-        isDestinationCurrentDevice(header))
+    if (isDestinationCurrentDevice(header))
         return true;
 
     return false;
@@ -429,8 +445,7 @@ bool MeshDataExchangeModule::isNeedToRetransmit(const DSS_Protocol_t &header, co
     if (flag == MeshPacketFlag_t::ToRoot && !esp_mesh_is_root())
         return true;
 
-    if ((flag == MeshPacketFlag_t::ToNode || flag == MeshPacketFlag_t::FromIP) &&
-        !isDestinationCurrentDevice(header))
+    if ((flag == MeshPacketFlag_t::ToNode || flag == MeshPacketFlag_t::FromIP) && !isDestinationCurrentDevice(header))
         return true;
 
     if (flag == MeshPacketFlag_t::ToIP)
