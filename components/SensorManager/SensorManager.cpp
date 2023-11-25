@@ -11,12 +11,14 @@
 
 SensorManager::SensorManager()
 {
-    xTaskCreate(SensorManager::readingTask, "reading_task", 4096, NULL, 5, NULL);
+    xTaskCreate(SensorManager::readingTask, "reading_task", 8192, NULL, 5, NULL);
     ESP_LOGI(moduleTag, "initialized");
 }
 
 void SensorManager::readingTask(void * /*arg*/)
 {
+    vTaskDelay(pdMS_TO_TICKS(10 * 1000));
+
     while (true)
     {
         vTaskDelay(pdMS_TO_TICKS(SensorManager::getInstance().m_readingPeriod * 1000));
