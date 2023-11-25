@@ -308,13 +308,6 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
 
     while (1)
     {
-        // Check the receiving state
-        if (MeshDataExchangeModule::getInstance().m_receivingState == false)
-        {
-            vTaskSuspend(NULL);
-            continue;
-        }
-
         dataDes.size = MESH_MTU;
         // TODO: check if needing it
         recvOpt.type = 0;
