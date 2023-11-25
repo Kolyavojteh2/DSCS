@@ -11,6 +11,9 @@
 #include "lwip/sys.h"
 #include "lwip/netdb.h"
 
+#include <iomanip>
+#include <iostream>
+
 #include <vector>
 
 #ifndef RETRY_SEND_COUNT
@@ -281,6 +284,8 @@ void MeshDataExchangeModule::receiveIPTask(void * /*unused*/)
 
         // TODO: check if it is needing
         ESP_LOGI(moduleTag, "Received data from IP: %s", recvBuffer);
+        for (int i = 0; i < gotBytes; ++i)
+            std::cout << std::setw(2) << std::setfill('0') << std::hex << (unsigned int)recvBuffer[i] << " ";
 
         std::vector<uint8_t> bin(recvBuffer, recvBuffer + gotBytes);
         int recvFlag = MeshPacketFlag_t::FromIP;
@@ -324,6 +329,8 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
 
         // TODO: check if it is needing
         ESP_LOGI(moduleTag, "Received data from MESH: %s", dataDes.data);
+        for (int i = 0; i < dataDes.size; ++i)
+            std::cout << std::setw(2) << std::setfill('0') << std::hex << (unsigned int)recvBuffer[i] << " ";
 
         std::vector<uint8_t> bin(dataDes.data, dataDes.data + dataDes.size);
         analyzeAndProcessData(bin, recvFlag);
