@@ -27,6 +27,8 @@
 #include "TimeManager.h"
 #include "SensorManager.h"
 
+#include <climits>
+
 #include "WifiModule.h"
 #include "MeshNetworkModule.h"
 #include <esp_wifi.h>
@@ -400,7 +402,7 @@ void DSSProtocolHandler::getSensorDataPacketRequestHandler(const std::vector<uin
 
         std::map<std::string, uint8_t> header;
         SensorManager::getSensorHeader(packet->sensorName, header);
-        packet->sizeTime = header[packet->dataName];
+        packet->sizeData = header[packet->dataName];
 
         SensorManager::getSensorData(packet->sensorName, packet->dataName, packet->dataTime, packet->dataValue);
     };
