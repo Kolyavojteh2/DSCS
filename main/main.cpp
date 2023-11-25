@@ -9,6 +9,7 @@
 #include "SensorModules/SI1145/SI1145.h"
 #include "SensorModules/HDC1080/HDC1080.h"
 #include "SensorModules/CCS811/CCS811.h"
+#include "SensorModules/HeapMonitor/HeapMonitor.h"
 
 #include "TimeManager.h"
 #include "DSSProtocolHandler.h"
@@ -39,22 +40,22 @@ void display_netif_info(esp_netif_t *netif)
 
 extern "C" void app_main(void)
 {
-    FlashStorage &flash = FlashStorage::getInstance();
-    WifiModule &wifi = WifiModule::getInstance();
-    MeshNetworkModule &meshNetwork = MeshNetworkModule::getInstance();
-    MeshDataExchangeModule::getInstance();
-    DistributedSensorSystemClient::getInstance();
-    SensorManager::getInstance();
-
-    vTaskDelay(pdMS_TO_TICKS(10000));
-
     // Sensors
+    SensorManager::getInstance();
     HDC1080 temperatureAndHumidity;
     SensorManager::addSensor(&temperatureAndHumidity);
     SI1145 lightSensor;
     SensorManager::addSensor(&lightSensor);
     CCS811 airSensor;
     SensorManager::addSensor(&airSensor);
+    HeapMonitor heapMonitor;
+    SensorManager::addSensor(&heapMonitor);
+
+    FlashStorage &flash = FlashStorage::getInstance();
+    WifiModule &wifi = WifiModule::getInstance();
+    MeshNetworkModule &meshNetwork = MeshNetworkModule::getInstance();
+    MeshDataExchangeModule::getInstance();
+    DistributedSensorSystemClient::getInstance();
 
     vTaskDelay(pdMS_TO_TICKS(5000));
 
