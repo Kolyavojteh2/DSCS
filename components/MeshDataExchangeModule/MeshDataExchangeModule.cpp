@@ -431,8 +431,7 @@ bool MeshDataExchangeModule::isNeedToHandle(const DSS_Protocol_t &header, const 
     if (flag == MeshPacketFlag_t::ToRoot && esp_mesh_is_root())
         return true;
 
-    if ((flag == MeshPacketFlag_t::ToNode || flag == MeshPacketFlag_t::FromIP) &&
-        isDestinationCurrentDevice(header))
+    if (isDestinationCurrentDevice(header))
         return true;
 
     return false;
@@ -446,8 +445,7 @@ bool MeshDataExchangeModule::isNeedToRetransmit(const DSS_Protocol_t &header, co
     if (flag == MeshPacketFlag_t::ToRoot && !esp_mesh_is_root())
         return true;
 
-    if ((flag == MeshPacketFlag_t::ToNode || flag == MeshPacketFlag_t::FromIP) &&
-        !isDestinationCurrentDevice(header))
+    if ((flag == MeshPacketFlag_t::ToNode || flag == MeshPacketFlag_t::FromIP) && !isDestinationCurrentDevice(header))
         return true;
 
     if (flag == MeshPacketFlag_t::ToIP)
