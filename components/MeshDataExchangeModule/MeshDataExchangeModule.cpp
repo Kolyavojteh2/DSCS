@@ -419,7 +419,15 @@ bool MeshDataExchangeModule::isDestinationCurrentDevice(const DSS_Protocol_t &da
 bool MeshDataExchangeModule::isBroadcast(const DSS_Protocol_t &header)
 {
     // TODO: add check broadcast
-    return false;
+    static std::vector<uint8_t> broadcastMAC = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+
+    for (int i = 0; i < header.destinationMAC.size(); ++i)
+    {
+        if (header.destinationMAC[i] != broadcastMAC[i])
+            return false;
+    }
+
+    return true;
 }
 
 bool MeshDataExchangeModule::isNeedToHandle(const DSS_Protocol_t &header, const int flag)
