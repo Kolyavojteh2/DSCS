@@ -337,20 +337,29 @@ void MeshDataExchangeModule::receiveMeshTask(void * /*unused*/)
     }
 }
 
-void MeshDataExchangeModule::analyzeAndProcessData(const std::vector<uint8_t> bin, const int flag)
+void MeshDataExchangeModule::analyzeAndProcessData(std::vector<uint8_t> bin, const int flag)
 {
-    DSS_Protocol_t header = DSS_Protocol_t::makeHeaderDataOnly(bin);
-
-    if (isNeedToHandle(header, flag))
+    while (!bin.empty())
     {
-        ESP_LOGI(moduleTag, "Handle this packet.");
-        handleReceivedData(bin, flag);
-    }
+        // DSS_Protocol_t header = DSS_Protocol_t::makeHeaderDataOnly(bin);
+        DSS_Protocol_t fullPacket(bin);
 
-    if (isNeedToRetransmit(header, flag))
-    {
-        ESP_LOGI(moduleTag, "Retransmit this packet.");
-        retransmitReceivedData(bin, flag);
+        std::vector<uint8_t> binSinglePacket;
+        fullPacket.toBin(binSinglePacket);
+
+        if (isNeedToHandle(fullPacket, flag))
+        {
+            ESP_LOGI(moduleTag, "Handle this packet.");
+            handleReceivedData(binSinglePacket, flag);
+        }
+
+        if (isNeedToRetransmit(fullPacket, flag))
+        {
+            ESP_LOGI(moduleTag, "Retransmit this packet.");
+            retransmitReceivedData(binSinglePacket, flag);
+        }
+
+        bin.erase(bin.begin(), bin.begin() + fullPacket.getPacketSize());
     }
 }
 
