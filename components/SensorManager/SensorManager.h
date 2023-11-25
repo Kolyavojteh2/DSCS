@@ -28,7 +28,7 @@ public:
     static void getSensorHeader(const std::string &sensorName, std::map<std::string, uint8_t> &header);
     static void getSensorData(const std::string &sensorName, const std::string &dataName,
                               std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
-                              const time_t from = 0, const time_t to = -1);
+                              const time_t from = 0, const time_t to = INT_LEAST32_MAX);
 
     static void getReadingPeriod(time_t &period);
     static void setReadingPeriod(const time_t &period);

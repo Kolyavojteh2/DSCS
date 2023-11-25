@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 
+#include <climits>
+
 class BaseSensorModule
 {
 public:
@@ -24,7 +26,7 @@ public:
     virtual void getData(const std::string &dataName,
                          std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
                          unsigned int count,
-                         const time_t from = 0, const time_t to = -1) = 0;
+                         const time_t from = 0, const time_t to = INT_LEAST32_MAX) = 0;
     virtual void getSingleDataSize(const std::string &dataName, uint8_t &size) = 0;
 
     virtual void clearData(const std::string &dataName, const time_t from = 0, const time_t to = -1);

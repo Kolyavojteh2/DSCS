@@ -4,6 +4,8 @@
 #include "../BaseSensorModule.h"
 #include <map>
 
+#include <climits>
+
 enum CCS811_ApplicationRegister
 {
     CCS811_STATUS = 0x00,
@@ -77,10 +79,10 @@ public:
     void getData(const std::string &dataName,
                  std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
                  unsigned int count,
-                 const time_t from = 0, const time_t to = -1) override;
+                 const time_t from = 0, const time_t to = INT_LEAST32_MAX) override;
     void getSingleDataSize(const std::string &dataName, uint8_t &size) override;
 
-    void clearData(const std::string &dataName, const time_t from = 0, const time_t to = -1);
+    void clearData(const std::string &dataName, const time_t from = 0, const time_t to = INT_LEAST32_MAX);
 
 private:
     void read_ui8(const uint8_t reg, uint8_t &out);
@@ -94,9 +96,9 @@ private:
     bool isDataReady();
 
     void getDataECO2(std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
-                     unsigned int count, const time_t from = 0, const time_t to = -1);
+                     unsigned int count, const time_t from = 0, const time_t to = INT_LEAST32_MAX);
     void getDataTVOC(std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
-                     unsigned int count, const time_t from = 0, const time_t to = -1);
+                     unsigned int count, const time_t from = 0, const time_t to = INT_LEAST32_MAX);
 
     std::map<time_t, uint16_t> m_eCO2;
     std::map<time_t, uint16_t> m_TVOC;

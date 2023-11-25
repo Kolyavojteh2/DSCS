@@ -154,10 +154,10 @@ public:
     void getData(const std::string &dataName,
                  std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
                  unsigned int count,
-                 const time_t from = 0, const time_t to = -1) override;
+                 const time_t from = 0, const time_t to = INT_LEAST32_MAX) override;
     void getSingleDataSize(const std::string &dataName, uint8_t &size) override;
 
-    void clearData(const std::string &dataName, const time_t from = 0, const time_t to = -1);
+    void clearData(const std::string &dataName, const time_t from = 0, const time_t to = INT_LEAST32_MAX);
 
 private:
     void read_ui8(const uint8_t reg, uint8_t &out);
@@ -168,16 +168,16 @@ private:
 
     void getUVData(std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
                    unsigned int count,
-                   const time_t from = 0, const time_t to = -1);
+                   const time_t from = 0, const time_t to = INT_LEAST32_MAX);
     void getVisibleData(std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
                         unsigned int count,
-                        const time_t from = 0, const time_t to = -1);
+                        const time_t from = 0, const time_t to = INT_LEAST32_MAX);
     void getIRData(std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
                    unsigned int count,
-                   const time_t from = 0, const time_t to = -1);
+                   const time_t from = 0, const time_t to = INT_LEAST32_MAX);
     void getProxData(std::vector<time_t> &dataTime, std::vector<uint8_t> &data,
                      unsigned int count,
-                     const time_t from = 0, const time_t to = -1);
+                     const time_t from = 0, const time_t to = INT_LEAST32_MAX);
 
     std::map<time_t, uint16_t> m_UV;
     std::map<time_t, uint16_t> m_Visible;
